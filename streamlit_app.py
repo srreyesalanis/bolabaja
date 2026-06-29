@@ -291,7 +291,6 @@ elif st.session_state.screen == "leader_setup":
         for p in players
     })
     player_labels = list(player_options.keys())
-
     group_name = st.text_input("Nombre del grupo (ej. Grupo 1)", value="Grupo 1")
     group_name = st.text_input("Nombre del grupo (ej. Carro 1)", value="Carro 1")
 
