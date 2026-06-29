@@ -166,10 +166,10 @@ if st.session_state.screen == "home":
                 st.rerun()
 
             st.markdown("**Crear nuevo torneo**")
+            tees = get_tees()
+            tee_opts = {f"{t['color']} — Rating {t['rating']} / Slope {t['slope']}": t for t in tees}
             with st.form("form_org"):
-                tees = get_tees()
                 fecha = st.date_input("Fecha", value=date.today())
-                tee_opts = {f"{t['color']} — Rating {t['rating']} / Slope {t['slope']}": t for t in tees}
                 tee_label = st.selectbox("Tee", list(tee_opts.keys()))
                 submitted = st.form_submit_button("🚀 Crear Torneo", type="primary")
 
