@@ -435,29 +435,36 @@ elif st.session_state.screen == "scores":
     # Hoyos con scores guardados (al menos una entrada)
     hoyos_con_scores = set(s["hole_number"] for s in existing_scores)
 
-    # Selector de hoyo - 2 filas de 9
-    st.markdown("**Selecciona hoyo:**")
-    st.markdown("""
-    <style>
-    [data-testid="column"] { min-width: 0 !important; padding: 2px !important; }
-    [data-testid="column"] button { padding: 4px 0 !important; font-size: 13px !important; min-height: 36px !important; }
-    </style>
-    """, unsafe_allow_html=True)
-
+    # Selector de hoyo - HTML grid clickeable
     if "hole_num" not in st.session_state:
         st.session_state.hole_num = 1
 
-    filas = [list(range(1, 10)), list(range(10, 19))]
-    for fila in filas:
-        cols_h = st.columns(9)
-        for idx, h in enumerate(fila):
-            tiene = h in hoyos_con_scores
-            emoji = "🟢" if tiene else "⚫"
-            if cols_h[idx].button(f"{emoji}{h}", key=f"hole_btn_{h}", use_container_width=True):
-                st.session_state.hole_num = h
+    # Leer si viene un hoyo seleccionado via query params
+    qp = st.query_params
+    if "h" in qp:
+        try:
+            st.session_state.hole_num = int(qp["h"])
+        except:
+            pass
+
+    st.markdown("**Selecciona hoyo:**")
+    cells = ""
+    for h in range(1, 19):
+        tiene = h in hoyos_con_scores
+        bg = "#2e7d32" if tiene else "#555"
+        selected = "border:3px solid #FFD700;" if h == st.session_state.hole_num else "border:3px solid transparent;"
+        cells += f'<a href="?h={h}" style="text-decoration:none;"><div style="background:{bg};{selected}color:white;border-radius:8px;padding:10px 0;text-align:center;font-weight:bold;font-size:15px;">{h}</div></a>'
+
+    st.markdown(f"""
+    <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px;margin-bottom:10px;">
+    {cells}
+    </div>
+    """, unsafe_allow_html=True)
 
     hole_num = st.session_state.hole_num
-    st.caption(f"Hoyo seleccionado: **{hole_num}**")
+    hole_info_sel = next(h for h in holes if h["hole_number"] == hole_num)
+    st.markdown(f"**Hoyo {hole_num} — Par {hole_info_sel['par']} | HCP: {hole_info_sel['handicap']}**")
+    hole_info = hole_info_sel
 
     hole_info = next(h for h in holes if h["hole_number"] == hole_num)
     st.markdown(f"### Hoyo {hole_num} — Par {hole_info['par']} | HCP Hoyo: {hole_info['handicap']}")
