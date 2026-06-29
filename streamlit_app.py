@@ -254,8 +254,8 @@ if st.session_state.screen == "home":
         st.subheader("👀 Espectador")
         st.caption("Ve el leaderboard general")
         torneos = get_active_tournaments()
+        if torneos:
             t_opts = {f"{t['name']}": t for t in torneos}
-            t_opts = {f"{t['name']} — {t['date']}": t for t in torneos}
             sel = st.selectbox("Torneo", list(t_opts.keys()), key="spec_sel")
             if st.button("Ver Leaderboard", type="primary"):
                 t = t_opts[sel]
