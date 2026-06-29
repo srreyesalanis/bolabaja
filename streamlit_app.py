@@ -85,13 +85,27 @@ def upsert_score(tournament_id, group_id, pair_name, player_id, guest_id, hole_n
     else:
         supabase.table("tournament_scores").insert(data).execute()
 
-def build_strokes_map(parejas, holes):
-    return {
-        p["pair_name"]: {
-            "j1": strokes_given(p["player1_ch"], holes),
-            "j2": strokes_given(p["player2_ch"], holes),
-        } for p in parejas
-    }
+def build_strokes_map(parejas_agrupadas, holes):
+    result = {}
+    for pair_name, jugadores in parejas_agrupadas.items():
+        result[pair_name] = {
+            "j1": strokes_given(jugadores[0]["course_handicap"] or 0, holes),
+            "j2": strokes_given(jugadores[1]["course_handicap"] or 0, holes),
+        }
+    return result
+
+def agrupar_parejas(rows):
+    """Convierte lista de filas (1 por jugador) en dict por pair_name con j1/j2."""
+    grupos = {}
+    for r in rows:
+        pn = r["pair_name"]
+        if pn not in grupos:
+            grupos[pn] = []
+        grupos[pn].append(r)
+    # Ordenar por pair_order dentro de cada pareja
+    for pn in grupos:
+        grupos[pn].sort(key=lambda x: x.get("pair_order", 0))
+    return grupos
 
 def save_guest(name, hi, fecha, player_id=None):
     data = {"name": name, "handicap_index": float(hi or 0), "tournament_date": str(fecha)}
@@ -233,11 +247,12 @@ if st.session_state.screen == "home":
                 t = t_res.data[0]
                 tee_res = supabase.table("tees").select("*").eq("id", t["tee_id"]).execute()
                 holes = get_holes()
-                parejas = get_group_players(g["id"])
+                rows = get_group_players(g["id"])
+                parejas_agrupadas = agrupar_parejas(rows)
                 st.session_state.tournament = {**t, "tee": tee_res.data[0]}
                 st.session_state.group = g
-                st.session_state.parejas = parejas
-                st.session_state.strokes_map = build_strokes_map(parejas, holes)
+                st.session_state.parejas = parejas_agrupadas
+                st.session_state.strokes_map = build_strokes_map(parejas_agrupadas, holes)
                 st.session_state.role = "leader"
                 st.session_state.screen = "scores"
                 st.rerun()
@@ -356,37 +371,31 @@ elif st.session_state.screen == "leader_setup":
             }).execute()
             group_id = g_res.data[0]["id"]
 
-            parejas_db = []
+            parejas_db_rows = []
             for idx, p in enumerate(parejas_setup):
-                for jkey in ["j1", "j2"]:
+                for jnum, jkey in enumerate(["j1", "j2"]):
                     j = p[jkey]
                     guest_db_id = None
                     if j.get("_is_guest"):
                         guest_db_id = save_guest(j["name"], j["current_handicap"], t["date"])
                     elif j.get("_hi_temporal"):
                         guest_db_id = save_guest(j["name"], j["current_handicap"], t["date"], player_id=j["id"])
-                    p[jkey]["_guest_db_id"] = guest_db_id
+                    ch = p["player1_ch"] if jkey == "j1" else p["player2_ch"]
+                    row = supabase.table("group_players").insert({
+                        "group_id": group_id,
+                        "pair_order": (idx * 2) + jnum + 1,
+                        "pair_name": p["pair_name"],
+                        "player_id": None if (j.get("_is_guest") or j.get("_hi_temporal")) else j["id"],
+                        "guest_id": guest_db_id,
+                        "player_name": j["name"],
+                        "course_handicap": ch,
+                    }).execute()
+                    parejas_db_rows.append(row.data[0])
 
-                j1 = p["j1"]
-                j2 = p["j2"]
-                row = supabase.table("group_players").insert({
-                    "group_id": group_id,
-                    "pair_order": idx + 1,
-                    "pair_name": p["pair_name"],
-                    "player1_id": None if (j1.get("_is_guest") or j1.get("_hi_temporal")) else j1["id"],
-                    "player1_guest_id": j1.get("_guest_db_id"),
-                    "player1_name": j1["name"],
-                    "player1_ch": p["player1_ch"],
-                    "player2_id": None if (j2.get("_is_guest") or j2.get("_hi_temporal")) else j2["id"],
-                    "player2_guest_id": j2.get("_guest_db_id"),
-                    "player2_name": j2["name"],
-                    "player2_ch": p["player2_ch"],
-                }).execute()
-                parejas_db.append(row.data[0])
-
+            parejas_agrupadas = agrupar_parejas(parejas_db_rows)
             st.session_state.group = g_res.data[0]
-            st.session_state.parejas = parejas_db
-            st.session_state.strokes_map = build_strokes_map(parejas_db, holes)
+            st.session_state.parejas = parejas_agrupadas
+            st.session_state.strokes_map = build_strokes_map(parejas_agrupadas, holes)
             st.session_state.screen = "scores"
             st.success("Grupo creado")
             st.info(f"Codigo de grupo: {group_code}\nGuardalo para poder volver a entrar.")
@@ -431,39 +440,41 @@ elif st.session_state.screen == "scores":
     cols = st.columns(max(len(parejas), 1))
     scores_to_save = []
 
-    for i, pareja in enumerate(parejas):
+    for i, (pair_name, jugadores) in enumerate(parejas.items()):
+        j1 = jugadores[0]
+        j2 = jugadores[1]
         with cols[i]:
-            st.markdown(f"**{pareja['pair_name']}**")
-            sg1 = strokes_map[pareja["pair_name"]]["j1"][hole_num]
-            sg2 = strokes_map[pareja["pair_name"]]["j2"][hole_num]
+            st.markdown(f"**{pair_name}**")
+            sg1 = strokes_map[pair_name]["j1"][hole_num]
+            sg2 = strokes_map[pair_name]["j2"][hole_num]
 
-            pid1 = pareja.get("player1_id")
-            gid1 = pareja.get("player1_guest_id")
-            pid2 = pareja.get("player2_id")
-            gid2 = pareja.get("player2_guest_id")
+            pid1 = j1.get("player_id")
+            gid1 = j1.get("guest_id")
+            pid2 = j2.get("player_id")
+            gid2 = j2.get("guest_id")
 
-            prev1 = existing_map.get((pareja["pair_name"], hole_num, pid1, gid1), hole_info["par"])
-            prev2 = existing_map.get((pareja["pair_name"], hole_num, pid2, gid2), hole_info["par"])
-            saved1 = (pareja["pair_name"], hole_num, pid1, gid1) in existing_map
-            saved2 = (pareja["pair_name"], hole_num, pid2, gid2) in existing_map
+            prev1 = existing_map.get((pair_name, hole_num, pid1, gid1), hole_info["par"])
+            prev2 = existing_map.get((pair_name, hole_num, pid2, gid2), hole_info["par"])
+            saved1 = (pair_name, hole_num, pid1, gid1) in existing_map
+            saved2 = (pair_name, hole_num, pid2, gid2) in existing_map
 
-            st.caption(f"{pareja['player1_name']} | HCP {pareja['player1_ch']} | +{sg1} {'OK' if saved1 else ''}")
-            g1 = st.number_input(f"Golpes {pareja['player1_name']}", min_value=1, max_value=15,
-                value=prev1, key=f"g1_{pareja['pair_name']}_{hole_num}")
+            st.caption(f"{j1['player_name']} | HCP {j1['course_handicap']} | +{sg1} {'OK' if saved1 else ''}")
+            g1_val = st.number_input(f"Golpes {j1['player_name']}", min_value=1, max_value=15,
+                value=prev1, key=f"g1_{pair_name}_{hole_num}")
 
-            st.caption(f"{pareja['player2_name']} | HCP {pareja['player2_ch']} | +{sg2} {'OK' if saved2 else ''}")
-            g2 = st.number_input(f"Golpes {pareja['player2_name']}", min_value=1, max_value=15,
-                value=prev2, key=f"g2_{pareja['pair_name']}_{hole_num}")
+            st.caption(f"{j2['player_name']} | HCP {j2['course_handicap']} | +{sg2} {'OK' if saved2 else ''}")
+            g2_val = st.number_input(f"Golpes {j2['player_name']}", min_value=1, max_value=15,
+                value=prev2, key=f"g2_{pair_name}_{hole_num}")
 
-            net1 = g1 - sg1
-            net2 = g2 - sg2
+            net1 = g1_val - sg1
+            net2 = g2_val - sg2
             bola_baja = min(net1, net2)
-            ganador_hoyo = pareja["player1_name"] if net1 <= net2 else pareja["player2_name"]
+            ganador_hoyo = j1["player_name"] if net1 <= net2 else j2["player_name"]
             st.metric("Bola baja neta", bola_baja, delta=f"{bola_baja - hole_info['par']} vs par")
             st.caption(f"Bola baja: {ganador_hoyo}")
 
-            scores_to_save.append((pareja["pair_name"], pid1, gid1, g1, net1))
-            scores_to_save.append((pareja["pair_name"], pid2, gid2, g2, net2))
+            scores_to_save.append((pair_name, pid1, gid1, g1_val, net1))
+            scores_to_save.append((pair_name, pid2, gid2, g2_val, net2))
 
     if st.button(f"Guardar Hoyo {hole_num}", type="primary"):
         for pair_name, pid, gid, strokes, net in scores_to_save:
@@ -479,18 +490,20 @@ elif st.session_state.screen == "scores":
         hole_scores[(s["pair_name"], s["hole_number"])].append(s["net_strokes"])
 
     group_board = []
-    for pareja in parejas:
+    for pair_name, jugadores in parejas.items():
+        j1 = jugadores[0]
+        j2 = jugadores[1]
         total = 0
         hoyos = set()
         for (pn, hn), nets in hole_scores.items():
-            if pn == pareja["pair_name"] and len(nets) >= 2:
+            if pn == pair_name and len(nets) >= 2:
                 total += min(nets)
                 hoyos.add(hn)
         par_jugado = sum(h["par"] for h in holes if h["hole_number"] in hoyos)
         vs_par = total - par_jugado if hoyos else 0
         group_board.append({
-            "Pareja": pareja["pair_name"],
-            "Jugadores": f"{pareja['player1_name']} / {pareja['player2_name']}",
+            "Pareja": pair_name,
+            "Jugadores": f"{j1['player_name']} / {j2['player_name']}",
             "Hoyos": f"{len(hoyos)}/18",
             "Total Neto": total if hoyos else "-",
             "vs Par": f"{'+' if vs_par > 0 else ''}{vs_par}" if hoyos else "-",
@@ -530,12 +543,15 @@ elif st.session_state.screen == "leaderboard":
 
     leader_data = []
     for grp in groups:
-        parejas = get_group_players(grp["id"])
-        for pareja in parejas:
+        rows = get_group_players(grp["id"])
+        parejas_grp = agrupar_parejas(rows)
+        for pair_name, jugadores in parejas_grp.items():
+            j1 = jugadores[0]
+            j2 = jugadores[1]
             total = 0
             hoyos = set()
             for (pn, gid, hn), nets in hole_scores.items():
-                if pn == pareja["pair_name"] and gid == grp["id"] and len(nets) >= 2:
+                if pn == pair_name and gid == grp["id"] and len(nets) >= 2:
                     total += min(nets)
                     hoyos.add(hn)
             par_jugado = sum(h["par"] for h in holes if h["hole_number"] in hoyos)
@@ -543,9 +559,9 @@ elif st.session_state.screen == "leaderboard":
             leader_data.append({
                 "Pos": 0,
                 "Grupo": grp["name"],
-                "Pareja": pareja["pair_name"],
-                "Jugadores": f"{pareja['player1_name']} / {pareja['player2_name']}",
-                "HCP": f"{pareja['player1_ch']} / {pareja['player2_ch']}",
+                "Pareja": pair_name,
+                "Jugadores": f"{j1['player_name']} / {j2['player_name']}",
+                "HCP": f"{j1['course_handicap']} / {j2['course_handicap']}",
                 "Hoyos": f"{len(hoyos)}/18",
                 "Total Neto": total if hoyos else 9999,
                 "vs Par": f"{'+' if vs_par > 0 else ''}{vs_par}" if hoyos else "-",
