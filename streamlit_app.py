@@ -618,3 +618,4 @@ elif st.session_state.screen == "leaderboard":
         st.caption("Se actualiza cada 30 segundos")
         time.sleep(30)
         st.rerun()
+
