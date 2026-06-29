@@ -274,7 +274,7 @@ elif st.session_state.screen == "leader_setup":
     t = st.session_state.tournament
     tee = t["tee"]
     players = supabase.table("players").select("id, name, current_handicap").order("name").execute().data
-    players = get_players()
+    st.caption(f"DEBUG: {len(players)} jugadores cargados")
 
     st.title(f"⛳ {t['name']}")
     st.caption(f"Tee: {tee['color']} | Rating: {tee['rating']} | Slope: {tee['slope']}")
