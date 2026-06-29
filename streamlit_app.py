@@ -624,9 +624,7 @@ elif _screen == "leaderboard":
         use_container_width=True, hide_index=True
     )
 
-    if st.session_state.role == "spectator":
-        st.caption("Se actualiza cada 30 segundos")
-        time.sleep(30)
+    if st.button("🔄 Actualizar"):
         st.rerun()
 
     st.stop()
