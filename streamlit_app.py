@@ -141,9 +141,11 @@ def go_home():
     st.session_state.hole_num = 1
 
 # ==============================================================================
-# PANTALLA HOME
+# ROUTER — una sola pantalla a la vez
 # ==============================================================================
-if st.session_state.screen == "home":
+_screen = st.session_state.screen
+
+if _screen == "home":
     st.title("Bola Baja por Parejas - Las Cruces")
     st.markdown("---")
     col_org, col_lider, col_spec = st.columns(3)
@@ -272,8 +274,7 @@ if st.session_state.screen == "home":
 
 # ==============================================================================
 # PANTALLA LEADER SETUP
-# ==============================================================================
-elif st.session_state.screen == "leader_setup":
+elif _screen == "leader_setup":
     t = st.session_state.tournament
     tee = t["tee"]
     players = supabase.table("players").select("id, name, current_handicap").order("name").execute().data
@@ -391,8 +392,7 @@ elif st.session_state.screen == "leader_setup":
 
 # ==============================================================================
 # PANTALLA SCORES
-# ==============================================================================
-elif st.session_state.screen == "scores":
+elif _screen == "scores":
     t = st.session_state.tournament
     g = st.session_state.group
     tee = t["tee"]
@@ -526,8 +526,7 @@ elif st.session_state.screen == "scores":
 
 # ==============================================================================
 # PANTALLA LEADERBOARD
-# ==============================================================================
-elif st.session_state.screen == "leaderboard":
+elif _screen == "leaderboard":
     t = st.session_state.tournament
     tee = t["tee"]
     holes = get_holes()
