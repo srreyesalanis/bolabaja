@@ -273,7 +273,7 @@ if st.session_state.screen == "home":
 elif st.session_state.screen == "leader_setup":
     t = st.session_state.tournament
     tee = t["tee"]
-    holes = get_holes()
+    players = supabase.table("players").select("id, name, current_handicap").order("name").execute().data
     players = get_players()
 
     st.title(f"⛳ {t['name']}")
