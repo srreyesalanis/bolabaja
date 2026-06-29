@@ -7,7 +7,7 @@ import string
 import time
 from collections import defaultdict
 
-st.set_page_config(page_title="Bola Baja por Parejas ⛳", layout="wide")
+st.set_page_config(page_title="Bola Baja por Parejas", layout="wide")
 
 # ─── SUPABASE ─────────────────────────────────────────────────────────────────
 @st.cache_resource
@@ -17,17 +17,9 @@ def get_supabase() -> Client:
 supabase = get_supabase()
 
 # ─── HELPERS ──────────────────────────────────────────────────────────────────
-def get_players():
-    res = supabase.table("players").select("id, name, current_handicap").order("name").execute()
-    return res.data
-
 def get_holes():
     res = supabase.table("holes").select("hole_number, par, handicap").order("hole_number").execute()
     return sorted(res.data, key=lambda x: x["hole_number"])
-
-def get_tees():
-    res = supabase.table("tees").select("id, name, color, rating, slope, par").execute()
-    return res.data
 
 def gen_code(prefix="LC"):
     return f"{prefix}-" + "".join(random.choices(string.digits, k=4))
@@ -46,7 +38,7 @@ def strokes_given(player_ch, holes):
     return result
 
 def get_active_tournaments():
-    return supabase.table("tournaments").select("id, name, date, access_code").order("date", desc=True).limit(20).execute().data
+    return supabase.table("tournaments").select("id, name, date, access_code, tee_id").order("date", desc=True).limit(20).execute().data
 
 def get_tournament_by_code(code):
     res = supabase.table("tournaments").select("*").eq("access_code", code.upper()).execute()
@@ -123,28 +115,32 @@ for key, default in [
         st.session_state[key] = default
 
 def go_home():
-    for key in ["screen", "role", "tournament", "group", "parejas", "strokes_map"]:
-        st.session_state[key] = "home" if key == "screen" else ([] if key == "parejas" else ({} if key == "strokes_map" else None))
+    st.session_state.screen = "home"
+    st.session_state.role = None
+    st.session_state.tournament = None
+    st.session_state.group = None
+    st.session_state.parejas = []
+    st.session_state.strokes_map = {}
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PANTALLA HOME
 # ══════════════════════════════════════════════════════════════════════════════
 if st.session_state.screen == "home":
-    st.title("⛳ Bola Baja por Parejas — Las Cruces")
+    st.title("Bola Baja por Parejas — Las Cruces")
     st.markdown("---")
 
     col_org, col_lider, col_spec = st.columns(3)
 
-    # ── ORGANIZADOR / ADMIN ───────────────────────────────────────────────
+    # ── ADMINISTRADOR ──────────────────────────────────────────────────────
     with col_org:
-        st.subheader("🏆 Administrador")
+        st.subheader("Administrador")
 
         if not st.session_state.admin_authed:
-            if st.button("🔐 Crear Torneo", type="primary"):
+            if st.button("Crear Torneo", type="primary"):
                 st.session_state.show_admin_login = True
 
             if st.session_state.show_admin_login:
-                st.caption("Ingresa tus credenciales de administrador")
+                st.caption("Ingresa tus credenciales")
                 admin_email = st.text_input("Email", key="admin_email")
                 admin_pass = st.text_input("Password", type="password", key="admin_pass")
                 if st.button("Iniciar sesion", key="admin_login_btn"):
@@ -157,11 +153,11 @@ if st.session_state.screen == "home":
                             st.session_state.show_admin_login = False
                             st.rerun()
                         else:
-                            st.error("❌ Credenciales incorrectas.")
+                            st.error("Credenciales incorrectas.")
                     except Exception as e:
-                        st.error(f"❌ Error: {e}")
+                        st.error(f"Error: {e}")
         else:
-            st.caption(f"✅ Sesion admin activa")
+            st.caption("Sesion admin activa")
             if st.button("Cerrar sesion", key="admin_logout"):
                 st.session_state.admin_authed = False
                 st.rerun()
@@ -169,13 +165,13 @@ if st.session_state.screen == "home":
             st.markdown("**Crear nuevo torneo**")
             tees = supabase.table("tees").select("id, name, color, rating, slope, par").execute().data
             if not tees:
-                st.error("❌ No se pudieron cargar los tees. Revisa la conexion a Supabase.")
+                st.error("No se pudieron cargar los tees.")
             else:
                 tee_opts = {f"{t['color']} — Rating {t['rating']} / Slope {t['slope']}": t for t in tees}
                 with st.form("form_org"):
                     fecha = st.date_input("Fecha", value=date.today())
                     tee_label = st.selectbox("Tee", list(tee_opts.keys()))
-                    submitted = st.form_submit_button("🚀 Crear Torneo", type="primary")
+                    submitted = st.form_submit_button("Crear Torneo", type="primary")
 
                 if submitted:
                     tee = tee_opts[tee_label]
@@ -187,33 +183,32 @@ if st.session_state.screen == "home":
                         "format": "bola_baja_parejas",
                         "access_code": code,
                     }).execute()
-                    st.success(f"✅ Torneo creado")
-                    st.info(f"**Codigo maestro:** `{code}`\nComparte este codigo con los lideres de grupo.")
+                    st.success("Torneo creado")
+                    st.info(f"Codigo maestro: {code}\nComparte este codigo con los lideres de grupo.")
 
             st.markdown("---")
             st.markdown("**Borrar torneo**")
             torneos_admin = get_active_tournaments()
             if torneos_admin:
                 del_opts = {f"{t['name']} ({t['access_code']})": t for t in torneos_admin}
-                del_sel = st.selectbox("Selecciona torneo a borrar", list(del_opts.keys()), key="del_sel")
-                if st.button("🗑️ Borrar torneo", type="secondary"):
+                del_sel = st.selectbox("Torneo a borrar", list(del_opts.keys()), key="del_sel")
+                if st.button("Borrar torneo", type="secondary"):
                     t_del = del_opts[del_sel]
+                    grupos = supabase.table("groups").select("id").eq("tournament_id", t_del["id"]).execute().data
+                    for g in grupos:
+                        supabase.table("group_players").delete().eq("group_id", g["id"]).execute()
                     supabase.table("tournament_scores").delete().eq("tournament_id", t_del["id"]).execute()
-                    supabase.table("group_players").delete().eq("group_id",
-                        supabase.table("groups").select("id").eq("tournament_id", t_del["id"]).execute().data[0]["id"]
-                        if supabase.table("groups").select("id").eq("tournament_id", t_del["id"]).execute().data else "00000000-0000-0000-0000-000000000000"
-                    ).execute()
                     supabase.table("groups").delete().eq("tournament_id", t_del["id"]).execute()
                     supabase.table("tournament_pairs").delete().eq("tournament_id", t_del["id"]).execute()
                     supabase.table("tournaments").delete().eq("id", t_del["id"]).execute()
-                    st.success(f"✅ Torneo {t_del['name']} borrado.")
+                    st.success(f"Torneo {t_del['name']} borrado.")
                     st.rerun()
             else:
                 st.info("No hay torneos para borrar.")
 
     # ── LIDER DE GRUPO ─────────────────────────────────────────────────────
     with col_lider:
-        st.subheader("🏌️ Lider de Grupo")
+        st.subheader("Lider de Grupo")
         st.caption("Entra con el codigo maestro del torneo")
 
         master_code = st.text_input("Codigo maestro (ej. LC-1234)", key="master_code")
@@ -226,7 +221,7 @@ if st.session_state.screen == "home":
                 st.session_state.screen = "leader_setup"
                 st.rerun()
             else:
-                st.error("❌ Codigo no encontrado.")
+                st.error("Codigo no encontrado.")
 
         st.markdown("---")
         st.caption("Ya tienes un grupo creado?")
@@ -247,15 +242,15 @@ if st.session_state.screen == "home":
                 st.session_state.screen = "scores"
                 st.rerun()
             else:
-                st.error("❌ Codigo de grupo no encontrado.")
+                st.error("Codigo de grupo no encontrado.")
 
     # ── ESPECTADOR ─────────────────────────────────────────────────────────
     with col_spec:
-        st.subheader("👀 Espectador")
+        st.subheader("Espectador")
         st.caption("Ve el leaderboard general")
         torneos = get_active_tournaments()
         if torneos:
-            t_opts = {f"{t['name']}": t for t in torneos}
+            t_opts = {t["name"]: t for t in torneos}
             sel = st.selectbox("Torneo", list(t_opts.keys()), key="spec_sel")
             if st.button("Ver Leaderboard", type="primary"):
                 t = t_opts[sel]
@@ -268,87 +263,88 @@ if st.session_state.screen == "home":
             st.info("No hay torneos activos.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PANTALLA LIDER SETUP — crear grupo y agregar parejas
+# PANTALLA LEADER SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.screen == "leader_setup":
     t = st.session_state.tournament
     tee = t["tee"]
+    par18 = tee["par"] if tee["par"] >= 60 else tee["par"] * 2
+
     players = supabase.table("players").select("id, name, current_handicap").order("name").execute().data
 
-
-
-
-
-
-    st.title(f"⛳ {t['name']}")
+    st.title(f"Bola Baja — {t['name']}")
     st.caption(f"Tee: {tee['color']} | Rating: {tee['rating']} | Slope: {tee['slope']}")
-    if st.button("🚪 Salir"):
+    if st.button("Salir"):
         go_home()
         st.rerun()
     st.markdown("---")
-
     st.subheader("Crear tu Grupo")
 
-    player_options = {"— Seleccione jugador —": None}
-    player_options.update({
+    player_opts = {"-- Seleccione jugador --": None}
+    player_opts.update({
         f"{p['name']} (HI: {int(p['current_handicap']) if p['current_handicap'] else 'N/A'})": p
         for p in players
     })
-    player_labels = list(player_options.keys())
-    group_name = st.text_input("Nombre del grupo (ej. Grupo 1)", value="Grupo 1")
+    player_labels = list(player_opts.keys())
 
-    num_parejas = st.number_input("Numero de parejas en este grupo", min_value=1, max_value=8, value=2)
+    group_name = st.text_input("Nombre del grupo", value="Grupo 1")
+    num_parejas = st.number_input("Numero de parejas", min_value=1, max_value=8, value=2)
 
     parejas_setup = []
     valid = True
+
     for i in range(int(num_parejas)):
         st.markdown(f"**Pareja {i+1}**")
-        pair_name = st.text_input("Nombre de la pareja", value=f"Pareja {i+1}", key=f"ls_pname_{i}")
+        pair_name = st.text_input("Nombre de la pareja", value=f"Pareja {i+1}", key=f"pname_{i}")
 
+        # Jugador 1
         st.caption("Jugador 1")
-        guest1 = st.checkbox("Invitado", key=f"ls_g1_{i}")
+        guest1 = st.checkbox("Invitado", key=f"g1_{i}")
         if guest1:
-            j1_name = st.text_input("Nombre", key=f"ls_j1gn_{i}")
-            hi1 = st.number_input("Handicap Index", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"ls_j1gh_{i}")
+            j1_name = st.text_input("Nombre", key=f"j1gn_{i}")
+            hi1 = st.number_input("Handicap Index", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"j1gh_{i}")
             j1 = {"id": None, "name": j1_name or "Invitado 1", "current_handicap": hi1, "_is_guest": True}
         else:
-            j1_label = st.selectbox("Jugador 1", player_labels, key=f"ls_j1_{i}")
-            _j1_val = player_options.get(st.session_state.get(f"ls_j1_{i}", ""))
-            j1 = dict(_j1_val) if _j1_val else None
-            if j1 and not j1.get("current_handicap"):
-                hi1 = st.number_input(f"HI de {j1['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"ls_hi1_{i}")
+            j1_label = st.selectbox("Jugador 1", player_labels, key=f"j1_{i}")
+            j1_data = player_opts.get(j1_label)
+            j1 = dict(j1_data) if j1_data else None
+            if j1 is not None and not j1.get("current_handicap"):
+                hi1 = st.number_input(f"HI de {j1['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"hi1_{i}")
                 j1["current_handicap"] = hi1
                 j1["_hi_temporal"] = True
 
+        # Jugador 2
         st.caption("Jugador 2")
-        guest2 = st.checkbox("Invitado", key=f"ls_g2_{i}")
+        guest2 = st.checkbox("Invitado", key=f"g2_{i}")
         if guest2:
-            j2_name = st.text_input("Nombre", key=f"ls_j2gn_{i}")
-            hi2 = st.number_input("Handicap Index", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"ls_j2gh_{i}")
+            j2_name = st.text_input("Nombre", key=f"j2gn_{i}")
+            hi2 = st.number_input("Handicap Index", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"j2gh_{i}")
             j2 = {"id": None, "name": j2_name or "Invitado 2", "current_handicap": hi2, "_is_guest": True}
         else:
-            j2_label = st.selectbox("Jugador 2", player_labels, key=f"ls_j2_{i}")
-            _j2_val = player_options.get(st.session_state.get(f"ls_j2_{i}", ""))
-            j2 = dict(_j2_val) if _j2_val else None
-            if j2 and not j2.get("current_handicap"):
-                hi2 = st.number_input(f"HI de {j2['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"ls_hi2_{i}")
+            j2_label = st.selectbox("Jugador 2", player_labels, key=f"j2_{i}")
+            j2_data = player_opts.get(j2_label)
+            j2 = dict(j2_data) if j2_data else None
+            if j2 is not None and not j2.get("current_handicap"):
+                hi2 = st.number_input(f"HI de {j2['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"hi2_{i}")
                 j2["current_handicap"] = hi2
                 j2["_hi_temporal"] = True
 
-        if j1 and j2:
+        if j1 is not None and j2 is not None:
             ch1 = course_handicap(j1["current_handicap"], tee["slope"], tee["rating"], par18 // 2)
             ch2 = course_handicap(j2["current_handicap"], tee["slope"], tee["rating"], par18 // 2)
-            st.caption(f"Course HCP: {j1['name']}: **{ch1}** | {j2['name']}: **{ch2}**")
+            st.caption(f"Course HCP: {j1['name']}: {ch1} | {j2['name']}: {ch2}")
             parejas_setup.append({"pair_name": pair_name, "j1": j1, "j2": j2, "player1_ch": ch1, "player2_ch": ch2})
         else:
-            st.warning(f"⚠️ Selecciona ambos jugadores para la Pareja {i+1}")
+            st.warning(f"Selecciona ambos jugadores para la Pareja {i+1}")
             valid = False
+
         st.divider()
 
-    if st.button("✅ Confirmar Grupo e Iniciar", type="primary"):
+    if st.button("Confirmar Grupo e Iniciar", type="primary"):
         if not valid or len(parejas_setup) != int(num_parejas):
-            st.error("❌ Completa todos los jugadores antes de continuar.")
+            st.error("Completa todos los jugadores antes de continuar.")
         else:
+            holes = get_holes()
             group_code = gen_code("GR")
             g_res = supabase.table("groups").insert({
                 "tournament_id": t["id"],
@@ -359,20 +355,17 @@ elif st.session_state.screen == "leader_setup":
 
             parejas_db = []
             for idx, p in enumerate(parejas_setup):
-                for jkey, jnum in [("j1", 1), ("j2", 2)]:
+                for jkey in ["j1", "j2"]:
                     j = p[jkey]
                     guest_db_id = None
                     if j.get("_is_guest"):
                         guest_db_id = save_guest(j["name"], j["current_handicap"], t["date"])
                     elif j.get("_hi_temporal"):
                         guest_db_id = save_guest(j["name"], j["current_handicap"], t["date"], player_id=j["id"])
-
                     p[jkey]["_guest_db_id"] = guest_db_id
 
-                ch1 = p["player1_ch"]
-                ch2 = p["player2_ch"]
-                j1, j2 = p["j1"], p["j2"]
-
+                j1 = p["j1"]
+                j2 = p["j2"]
                 row = supabase.table("group_players").insert({
                     "group_id": group_id,
                     "pair_order": idx + 1,
@@ -380,11 +373,11 @@ elif st.session_state.screen == "leader_setup":
                     "player1_id": None if (j1.get("_is_guest") or j1.get("_hi_temporal")) else j1["id"],
                     "player1_guest_id": j1.get("_guest_db_id"),
                     "player1_name": j1["name"],
-                    "player1_ch": ch1,
+                    "player1_ch": p["player1_ch"],
                     "player2_id": None if (j2.get("_is_guest") or j2.get("_hi_temporal")) else j2["id"],
                     "player2_guest_id": j2.get("_guest_db_id"),
                     "player2_name": j2["name"],
-                    "player2_ch": ch2,
+                    "player2_ch": p["player2_ch"],
                 }).execute()
                 parejas_db.append(row.data[0])
 
@@ -392,14 +385,13 @@ elif st.session_state.screen == "leader_setup":
             st.session_state.parejas = parejas_db
             st.session_state.strokes_map = build_strokes_map(parejas_db, holes)
             st.session_state.screen = "scores"
-
-            st.success(f"✅ Grupo creado")
-            st.info(f"**Codigo de grupo:** `{group_code}`\nGuardalo para poder volver a entrar.")
-            time.sleep(3)
+            st.success("Grupo creado")
+            st.info(f"Codigo de grupo: {group_code}\nGuardalo para poder volver a entrar.")
+            time.sleep(2)
             st.rerun()
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PANTALLA SCORES — lider captura scores de su grupo
+# PANTALLA SCORES
 # ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.screen == "scores":
     t = st.session_state.tournament
@@ -409,27 +401,25 @@ elif st.session_state.screen == "scores":
     strokes_map = st.session_state.strokes_map
     holes = get_holes()
 
-    st.title(f"⛳ {t['name']} — {g['name']}")
-    st.caption(f"Tee: {tee['color']} | Rating: {tee['rating']} | Slope: {tee['slope']} | Codigo grupo: **{g['access_code']}**")
+    st.title(f"{t['name']} — {g['name']}")
+    st.caption(f"Tee: {tee['color']} | Rating: {tee['rating']} | Slope: {tee['slope']} | Codigo grupo: {g['access_code']}")
 
-    col_back, col_lb = st.columns([1, 1])
+    col_back, col_lb = st.columns(2)
     with col_back:
-        if st.button("🚪 Salir"):
+        if st.button("Salir"):
             go_home()
             st.rerun()
     with col_lb:
-        if st.button("🏆 Ver Leaderboard General"):
+        if st.button("Ver Leaderboard General"):
             st.session_state.screen = "leaderboard"
             st.rerun()
 
     st.markdown("---")
 
-    # Selector de hoyo — libre, permite editar cualquier hoyo
     hole_num = st.select_slider("Selecciona hoyo", options=list(range(1, 19)), value=1)
     hole_info = next(h for h in holes if h["hole_number"] == hole_num)
     st.markdown(f"### Hoyo {hole_num} — Par {hole_info['par']} | HCP Hoyo: {hole_info['handicap']}")
 
-    # Cargar scores existentes
     existing_scores = get_group_scores(t["id"], g["id"])
     existing_map = {}
     for s in existing_scores:
@@ -451,15 +441,14 @@ elif st.session_state.screen == "scores":
 
             prev1 = existing_map.get((pareja["pair_name"], hole_num, pid1, gid1), hole_info["par"])
             prev2 = existing_map.get((pareja["pair_name"], hole_num, pid2, gid2), hole_info["par"])
-
             saved1 = (pareja["pair_name"], hole_num, pid1, gid1) in existing_map
             saved2 = (pareja["pair_name"], hole_num, pid2, gid2) in existing_map
 
-            st.caption(f"{pareja['player1_name']} | HCP {pareja['player1_ch']} | +{sg1} en este hoyo {'✅' if saved1 else ''}")
+            st.caption(f"{pareja['player1_name']} | HCP {pareja['player1_ch']} | +{sg1} {'OK' if saved1 else ''}")
             g1 = st.number_input(f"Golpes {pareja['player1_name']}", min_value=1, max_value=15,
                 value=prev1, key=f"g1_{pareja['pair_name']}_{hole_num}")
 
-            st.caption(f"{pareja['player2_name']} | HCP {pareja['player2_ch']} | +{sg2} en este hoyo {'✅' if saved2 else ''}")
+            st.caption(f"{pareja['player2_name']} | HCP {pareja['player2_ch']} | +{sg2} {'OK' if saved2 else ''}")
             g2 = st.number_input(f"Golpes {pareja['player2_name']}", min_value=1, max_value=15,
                 value=prev2, key=f"g2_{pareja['pair_name']}_{hole_num}")
 
@@ -467,21 +456,20 @@ elif st.session_state.screen == "scores":
             net2 = g2 - sg2
             bola_baja = min(net1, net2)
             ganador_hoyo = pareja["player1_name"] if net1 <= net2 else pareja["player2_name"]
-            st.metric("🏌️ Bola baja neta", bola_baja, delta=f"{bola_baja - hole_info['par']} vs par")
+            st.metric("Bola baja neta", bola_baja, delta=f"{bola_baja - hole_info['par']} vs par")
             st.caption(f"Bola baja: {ganador_hoyo}")
 
             scores_to_save.append((pareja["pair_name"], pid1, gid1, g1, net1))
             scores_to_save.append((pareja["pair_name"], pid2, gid2, g2, net2))
 
-    if st.button(f"💾 Guardar Hoyo {hole_num}", type="primary"):
+    if st.button(f"Guardar Hoyo {hole_num}", type="primary"):
         for pair_name, pid, gid, strokes, net in scores_to_save:
             upsert_score(t["id"], g["id"], pair_name, pid, gid, hole_num, strokes, net)
-        st.success(f"✅ Hoyo {hole_num} guardado.")
+        st.success(f"Hoyo {hole_num} guardado.")
         st.rerun()
 
-    # Mini scoreboard del grupo
     st.markdown("---")
-    st.subheader("📊 Scoreboard de tu grupo")
+    st.subheader("Scoreboard de tu grupo")
     scores_db = get_group_scores(t["id"], g["id"])
     hole_scores = defaultdict(list)
     for s in scores_db:
@@ -516,21 +504,20 @@ elif st.session_state.screen == "leaderboard":
     tee = t["tee"]
     holes = get_holes()
 
-    st.title(f"🏆 Leaderboard — {t['name']}")
+    st.title(f"Leaderboard — {t['name']}")
     st.caption(f"Tee: {tee['color']} | Rating: {tee['rating']} | Slope: {tee['slope']}")
 
-    col_back, col_refresh = st.columns([1, 1])
+    col_back, col_refresh = st.columns(2)
     with col_back:
-        if st.button("🚪 Salir"):
+        if st.button("Salir"):
             go_home()
             st.rerun()
     with col_refresh:
-        if st.button("🔄 Actualizar"):
+        if st.button("Actualizar"):
             st.rerun()
 
     st.markdown("---")
 
-    # Cargar todos los grupos y scores del torneo
     groups = get_groups_for_tournament(t["id"])
     all_scores = get_all_scores(t["id"])
 
@@ -569,14 +556,13 @@ elif st.session_state.screen == "leaderboard":
 
     if leader_data and leader_data[0]["Total Neto"] != "-":
         lider = leader_data[0]
-        st.success(f"🥇 Lider: **{lider['Pareja']}** ({lider['Jugadores']}) — {lider['vs Par']} | Grupo: {lider['Grupo']}")
+        st.success(f"Lider: {lider['Pareja']} ({lider['Jugadores']}) — {lider['vs Par']} | Grupo: {lider['Grupo']}")
 
     st.dataframe(
         pd.DataFrame(leader_data)[["Pos", "Grupo", "Pareja", "Jugadores", "HCP", "Hoyos", "Total Neto", "vs Par"]],
         use_container_width=True, hide_index=True
     )
 
-    # Auto-refresh para espectadores
     if st.session_state.role == "spectator":
         st.caption("Se actualiza cada 30 segundos")
         time.sleep(30)
