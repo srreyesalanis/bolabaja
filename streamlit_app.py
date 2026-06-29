@@ -437,12 +437,12 @@ elif st.session_state.screen == "scores":
 
     # Selector de hoyo como cuadricula de botones
     st.markdown("**Selecciona hoyo:**")
-    btn_cols = st.columns(9)
+    btn_cols = st.columns(6)
     for h in range(1, 19):
-        col = btn_cols[(h - 1) % 9]
+        col = btn_cols[(h - 1) % 6]
         tiene = h in hoyos_con_scores
         label = f"{'🟢' if tiene else '⚪'} {h}"
-        if col.button(label, key=f"hole_btn_{h}"):
+        if col.button(label, key=f"hole_btn_{h}", use_container_width=True):
             st.session_state.hole_num = h
 
     if "hole_num" not in st.session_state:
