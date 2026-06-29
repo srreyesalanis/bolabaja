@@ -273,8 +273,12 @@ if st.session_state.screen == "home":
 elif st.session_state.screen == "leader_setup":
     t = st.session_state.tournament
     tee = t["tee"]
-    players = supabase.table("players").select("id, name, current_handicap").order("name").execute().data
-    st.caption(f"DEBUG: {len(players)} jugadores cargados")
+    try:
+        players = supabase.table("players").select("id, name, current_handicap").order("name").execute().data
+        st.caption(f"DEBUG: {len(players)} jugadores | ejemplo: {players[0] if players else None}")
+    except Exception as e:
+        st.error(f"ERROR players: {e}")
+        players = []
 
     st.title(f"⛳ {t['name']}")
     st.caption(f"Tee: {tee['color']} | Rating: {tee['rating']} | Slope: {tee['slope']}")
@@ -298,6 +302,7 @@ elif st.session_state.screen == "leader_setup":
     parejas_setup = []
     valid = True
     for i in range(int(num_parejas)):
+        j1, j2 = None, None
         st.markdown(f"**Pareja {i+1}**")
         c1, c2, c3 = st.columns(3)
         with c1:
