@@ -154,8 +154,8 @@ if st.session_state.tournament_id is None:
             tee = tee_options[tee_label]
 
             st.markdown("**Parejas**")
-            player_options = {f"{p['name']} (HI: {p['current_handicap']})": p for p in players}
-            player_labels = list(player_options.keys())
+            player_options = {f"{p['name']} (HI: {int(p['current_handicap']) if p['current_handicap'] else 'N/A'})": p for p in players}
+            player_labels = ["— Seleccione jugador —"] + list(player_options.keys())
             num_parejas = st.number_input("Numero de parejas", min_value=2, max_value=8, value=2, key="new_num_parejas")
 
             parejas_setup = []
@@ -172,7 +172,7 @@ if st.session_state.tournament_id is None:
                             j1 = {"id": f"guest_1_{i}", "name": j1_name or "Invitado 1", "current_handicap": hi1, "_is_guest": True}
                         else:
                             j1_label = st.selectbox("Jugador 1", player_labels, key=f"np_j1_{i}")
-                            j1 = dict(player_options[j1_label])
+                            j1 = dict(player_options[j1_label]) if j1_label in player_options else None
                             if not j1["current_handicap"]:
                                 hi1 = st.number_input(f"HI de {j1['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"np_hi1_{i}")
                                 j1["current_handicap"] = hi1
@@ -185,7 +185,7 @@ if st.session_state.tournament_id is None:
                             j2 = {"id": f"guest_2_{i}", "name": j2_name or "Invitado 2", "current_handicap": hi2, "_is_guest": True}
                         else:
                             j2_label = st.selectbox("Jugador 2", player_labels, key=f"np_j2_{i}")
-                            j2 = dict(player_options[j2_label])
+                            j2 = dict(player_options[j2_label]) if j2_label in player_options else None
                             if not j2["current_handicap"]:
                                 hi2 = st.number_input(f"HI de {j2['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"np_hi2_{i}")
                                 j2["current_handicap"] = hi2
