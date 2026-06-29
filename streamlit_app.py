@@ -308,10 +308,6 @@ elif st.session_state.screen == "leader_setup":
             j1_label = st.selectbox("Jugador 1", player_labels, key=f"j1_{i}")
             j1_data = player_opts.get(j1_label)
             j1 = dict(j1_data) if j1_data else None
-            if j1 is not None and not j1.get("current_handicap"):
-                hi1 = st.number_input(f"HI de {j1['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"hi1_{i}")
-                j1["current_handicap"] = hi1
-                j1["_hi_temporal"] = True
 
         # Jugador 2
         st.caption("Jugador 2")
@@ -324,15 +320,10 @@ elif st.session_state.screen == "leader_setup":
             j2_label = st.selectbox("Jugador 2", player_labels, key=f"j2_{i}")
             j2_data = player_opts.get(j2_label)
             j2 = dict(j2_data) if j2_data else None
-            if j2 is not None and not j2.get("current_handicap"):
-                hi2 = st.number_input(f"HI de {j2['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"hi2_{i}")
-                j2["current_handicap"] = hi2
-                j2["_hi_temporal"] = True
 
         if j1 is not None and j2 is not None:
-            ch1 = course_handicap(j1["current_handicap"], tee["slope"], tee["rating"], par18 // 2)
-            ch2 = course_handicap(j2["current_handicap"], tee["slope"], tee["rating"], par18 // 2)
-            st.caption(f"Course HCP: {j1['name']}: {ch1} | {j2['name']}: {ch2}")
+            ch1 = course_handicap(j1.get("current_handicap") or 0, tee["slope"], tee["rating"], par18 // 2)
+            ch2 = course_handicap(j2.get("current_handicap") or 0, tee["slope"], tee["rating"], par18 // 2)
             parejas_setup.append({"pair_name": pair_name, "j1": j1, "j2": j2, "player1_ch": ch1, "player2_ch": ch2})
         else:
             st.warning(f"Selecciona ambos jugadores para la Pareja {i+1}")
