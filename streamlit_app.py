@@ -435,39 +435,26 @@ elif st.session_state.screen == "scores":
     # Hoyos con scores guardados (al menos una entrada)
     hoyos_con_scores = set(s["hole_number"] for s in existing_scores)
 
-    # Selector de hoyo - HTML grid clickeable
+    # Selector de hoyo - dropdown con indicador visual
     if "hole_num" not in st.session_state:
         st.session_state.hole_num = 1
 
-    # Leer si viene un hoyo seleccionado via query params
-    qp = st.query_params
-    if "h" in qp:
-        try:
-            st.session_state.hole_num = int(qp["h"])
-        except:
-            pass
-
-    st.markdown("**Selecciona hoyo:**")
-    cells = ""
+    hole_options = {}
     for h in range(1, 19):
         tiene = h in hoyos_con_scores
-        bg = "#2e7d32" if tiene else "#555"
-        selected = "border:3px solid #FFD700;" if h == st.session_state.hole_num else "border:3px solid transparent;"
-        cells += f'<a href="?h={h}" style="text-decoration:none;"><div style="background:{bg};{selected}color:white;border-radius:8px;padding:10px 0;text-align:center;font-weight:bold;font-size:15px;">{h}</div></a>'
+        hole_options[f"{'✅' if tiene else '⬜'} Hoyo {h}"] = h
 
-    st.markdown(f"""
-    <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px;margin-bottom:10px;">
-    {cells}
-    </div>
-    """, unsafe_allow_html=True)
-
-    hole_num = st.session_state.hole_num
-    hole_info_sel = next(h for h in holes if h["hole_number"] == hole_num)
-    st.markdown(f"**Hoyo {hole_num} — Par {hole_info_sel['par']} | HCP: {hole_info_sel['handicap']}**")
-    hole_info = hole_info_sel
+    current_label = next(k for k, v in hole_options.items() if v == st.session_state.hole_num)
+    sel_label = st.selectbox("Selecciona hoyo", list(hole_options.keys()),
+        index=list(hole_options.keys()).index(current_label), key="hole_selector")
+    hole_num = hole_options[sel_label]
+    st.session_state.hole_num = hole_num
 
     hole_info = next(h for h in holes if h["hole_number"] == hole_num)
-    st.markdown(f"### Hoyo {hole_num} — Par {hole_info['par']} | HCP Hoyo: {hole_info['handicap']}")
+    st.markdown(f"**Hoyo {hole_num} — Par {hole_info['par']} | HCP: {hole_info['handicap']}**")
+
+    hole_info = next(h for h in holes if h["hole_number"] == hole_num)
+    st.markdown(f"### Hoyo {hole_num} - Par {hole_info['par']} | HCP Hoyo: {hole_info['handicap']}")
 
     cols = st.columns(max(len(parejas), 1))
     scores_to_save = []
@@ -618,4 +605,3 @@ elif st.session_state.screen == "leaderboard":
         st.caption("Se actualiza cada 30 segundos")
         time.sleep(30)
         st.rerun()
-
