@@ -273,12 +273,12 @@ if st.session_state.screen == "home":
 elif st.session_state.screen == "leader_setup":
     t = st.session_state.tournament
     tee = t["tee"]
-    try:
-        players = supabase.table("players").select("id, name, current_handicap").order("name").execute().data
-        st.caption(f"DEBUG: {len(players)} jugadores | ejemplo: {players[0] if players else None}")
-    except Exception as e:
-        st.error(f"ERROR players: {e}")
-        players = []
+    players = supabase.table("players").select("id, name, current_handicap").order("name").execute().data
+
+
+
+
+
 
     st.title(f"⛳ {t['name']}")
     st.caption(f"Tee: {tee['color']} | Rating: {tee['rating']} | Slope: {tee['slope']}")
