@@ -283,7 +283,6 @@ if st.session_state.screen == "home":
 elif st.session_state.screen == "leader_setup":
     t = st.session_state.tournament
     tee = t["tee"]
-    par18 = tee["par"] if tee["par"] >= 60 else tee["par"] * 2
 
     players = supabase.table("players").select("id, name, current_handicap").order("name").execute().data
 
@@ -349,8 +348,8 @@ elif st.session_state.screen == "leader_setup":
                     j2["_hi_temporal"] = True
 
         if j1 is not None and j2 is not None:
-            ch1 = course_handicap(j1.get("current_handicap") or 0, tee["slope"], tee["rating"], par18 // 2)
-            ch2 = course_handicap(j2.get("current_handicap") or 0, tee["slope"], tee["rating"], par18 // 2)
+            ch1 = int(j1.get("current_handicap") or 0)
+            ch2 = int(j2.get("current_handicap") or 0)
             parejas_setup.append({"pair_name": pair_name, "j1": j1, "j2": j2, "player1_ch": ch1, "player2_ch": ch2})
         else:
             st.warning(f"Selecciona ambos jugadores para la Pareja {i+1}")
@@ -458,11 +457,11 @@ elif st.session_state.screen == "scores":
             saved1 = (pair_name, hole_num, pid1, gid1) in existing_map
             saved2 = (pair_name, hole_num, pid2, gid2) in existing_map
 
-            st.caption(f"{j1['player_name']} | HCP {j1['course_handicap']} | +{sg1} {'OK' if saved1 else ''}")
+            st.caption(f"{j1['player_name']} | +{sg1} ventaja{'  ✅' if saved1 else ''}")
             g1_val = st.number_input(f"Golpes {j1['player_name']}", min_value=1, max_value=15,
                 value=prev1, key=f"g1_{pair_name}_{hole_num}")
 
-            st.caption(f"{j2['player_name']} | HCP {j2['course_handicap']} | +{sg2} {'OK' if saved2 else ''}")
+            st.caption(f"{j2['player_name']} | +{sg2} ventaja{'  ✅' if saved2 else ''}")
             g2_val = st.number_input(f"Golpes {j2['player_name']}", min_value=1, max_value=15,
                 value=prev2, key=f"g2_{pair_name}_{hole_num}")
 
