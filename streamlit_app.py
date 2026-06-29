@@ -140,7 +140,7 @@ def go_home():
 # PANTALLA HOME
 # ══════════════════════════════════════════════════════════════════════════════
 if st.session_state.screen == "home":
-    st.title("Bola Baja por Parejas — Las Cruces")
+    st.title("Bola Baja por Parejas - Las Cruces")
     st.markdown("---")
 
     col_org, col_lider, col_spec = st.columns(3)
@@ -181,7 +181,7 @@ if st.session_state.screen == "home":
             if not tees:
                 st.error("No se pudieron cargar los tees.")
             else:
-                tee_opts = {f"{t['color']} — Rating {t['rating']} / Slope {t['slope']}": t for t in tees}
+                tee_opts = {f"{t['color']} - Rating {t['rating']} / Slope {t['slope']}": t for t in tees}
                 with st.form("form_org"):
                     fecha = st.date_input("Fecha", value=date.today())
                     tee_label = st.selectbox("Tee", list(tee_opts.keys()))
@@ -191,7 +191,7 @@ if st.session_state.screen == "home":
                     tee = tee_opts[tee_label]
                     code = gen_code("LC")
                     supabase.table("tournaments").insert({
-                        "name": f"Bola Baja — {fecha}",
+                        "name": f"Bola Baja - {fecha}",
                         "date": str(fecha),
                         "tee_id": tee["id"],
                         "format": "bola_baja_parejas",
@@ -286,7 +286,7 @@ elif st.session_state.screen == "leader_setup":
 
     players = supabase.table("players").select("id, name, current_handicap").order("name").execute().data
 
-    st.title(f"Bola Baja — {t['name']}")
+    st.title(f"Bola Baja - {t['name']}")
     st.caption(f"Tee: {tee['color']} | Rating: {tee['rating']} | Slope: {tee['slope']}")
     if st.button("Salir"):
         go_home()
@@ -412,7 +412,7 @@ elif st.session_state.screen == "scores":
     strokes_map = st.session_state.strokes_map
     holes = get_holes()
 
-    st.title(f"{t['name']} — {g['name']}")
+    st.title(f"{t['name']} - {g['name']}")
     st.caption(f"Tee: {tee['color']} | Rating: {tee['rating']} | Slope: {tee['slope']} | Codigo grupo: {g['access_code']}")
 
     col_back, col_lb = st.columns(2)
@@ -427,14 +427,30 @@ elif st.session_state.screen == "scores":
 
     st.markdown("---")
 
-    hole_num = st.select_slider("Selecciona hoyo", options=list(range(1, 19)), value=1)
-    hole_info = next(h for h in holes if h["hole_number"] == hole_num)
-    st.markdown(f"### Hoyo {hole_num} — Par {hole_info['par']} | HCP Hoyo: {hole_info['handicap']}")
-
     existing_scores = get_group_scores(t["id"], g["id"])
     existing_map = {}
     for s in existing_scores:
         existing_map[(s["pair_name"], s["hole_number"], s["player_id"], s["guest_id"])] = s["strokes"]
+
+    # Hoyos con scores guardados (al menos una entrada)
+    hoyos_con_scores = set(s["hole_number"] for s in existing_scores)
+
+    # Selector de hoyo como cuadricula de botones
+    st.markdown("**Selecciona hoyo:**")
+    btn_cols = st.columns(9)
+    for h in range(1, 19):
+        col = btn_cols[(h - 1) % 9]
+        tiene = h in hoyos_con_scores
+        label = f"{'🟢' if tiene else '⚪'} {h}"
+        if col.button(label, key=f"hole_btn_{h}"):
+            st.session_state.hole_num = h
+
+    if "hole_num" not in st.session_state:
+        st.session_state.hole_num = 1
+    hole_num = st.session_state.hole_num
+
+    hole_info = next(h for h in holes if h["hole_number"] == hole_num)
+    st.markdown(f"### Hoyo {hole_num} — Par {hole_info['par']} | HCP Hoyo: {hole_info['handicap']}")
 
     cols = st.columns(max(len(parejas), 1))
     scores_to_save = []
@@ -519,7 +535,7 @@ elif st.session_state.screen == "leaderboard":
     tee = t["tee"]
     holes = get_holes()
 
-    st.title(f"Leaderboard — {t['name']}")
+    st.title(f"Leaderboard - {t['name']}")
     st.caption(f"Tee: {tee['color']} | Rating: {tee['rating']} | Slope: {tee['slope']}")
 
     col_back, col_refresh = st.columns(2)
@@ -574,7 +590,7 @@ elif st.session_state.screen == "leaderboard":
 
     if leader_data and leader_data[0]["Total Neto"] != "-":
         lider = leader_data[0]
-        st.success(f"Lider: {lider['Pareja']} ({lider['Jugadores']}) — {lider['vs Par']} | Grupo: {lider['Grupo']}")
+        st.success(f"Lider: {lider['Pareja']} ({lider['Jugadores']}) - {lider['vs Par']} | Grupo: {lider['Grupo']}")
 
     st.dataframe(
         pd.DataFrame(leader_data)[["Pos", "Grupo", "Pareja", "Jugadores", "HCP", "Hoyos", "Total Neto", "vs Par"]],
