@@ -292,7 +292,6 @@ elif st.session_state.screen == "leader_setup":
     })
     player_labels = list(player_options.keys())
     group_name = st.text_input("Nombre del grupo (ej. Grupo 1)", value="Grupo 1")
-    group_name = st.text_input("Nombre del grupo (ej. Carro 1)", value="Carro 1")
 
     num_parejas = st.number_input("Numero de parejas en este grupo", min_value=1, max_value=8, value=2)
 
