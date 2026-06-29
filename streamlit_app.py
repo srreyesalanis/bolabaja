@@ -313,7 +313,8 @@ elif st.session_state.screen == "leader_setup":
             j1 = {"id": None, "name": j1_name or "Invitado 1", "current_handicap": hi1, "_is_guest": True}
         else:
             j1_label = st.selectbox("Jugador 1", player_labels, key=f"ls_j1_{i}")
-            j1 = dict(player_options[j1_label]) if player_options.get(j1_label) else None
+            _j1_val = player_options.get(st.session_state.get(f"ls_j1_{i}", ""))
+            j1 = dict(_j1_val) if _j1_val else None
             if j1 and not j1.get("current_handicap"):
                 hi1 = st.number_input(f"HI de {j1['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"ls_hi1_{i}")
                 j1["current_handicap"] = hi1
@@ -327,7 +328,8 @@ elif st.session_state.screen == "leader_setup":
             j2 = {"id": None, "name": j2_name or "Invitado 2", "current_handicap": hi2, "_is_guest": True}
         else:
             j2_label = st.selectbox("Jugador 2", player_labels, key=f"ls_j2_{i}")
-            j2 = dict(player_options[j2_label]) if player_options.get(j2_label) else None
+            _j2_val = player_options.get(st.session_state.get(f"ls_j2_{i}", ""))
+            j2 = dict(_j2_val) if _j2_val else None
             if j2 and not j2.get("current_handicap"):
                 hi2 = st.number_input(f"HI de {j2['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"ls_hi2_{i}")
                 j2["current_handicap"] = hi2
