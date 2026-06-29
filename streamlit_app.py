@@ -173,7 +173,7 @@ if st.session_state.tournament_id is None:
                         else:
                             j1_label = st.selectbox("Jugador 1", player_labels, key=f"np_j1_{i}")
                             j1 = dict(player_options[j1_label]) if j1_label in player_options else None
-                            if not j1["current_handicap"]:
+                            if j1 and not j1["current_handicap"]:
                                 hi1 = st.number_input(f"HI de {j1['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"np_hi1_{i}")
                                 j1["current_handicap"] = hi1
                                 j1["_hi_temporal"] = True
@@ -186,16 +186,19 @@ if st.session_state.tournament_id is None:
                         else:
                             j2_label = st.selectbox("Jugador 2", player_labels, key=f"np_j2_{i}")
                             j2 = dict(player_options[j2_label]) if j2_label in player_options else None
-                            if not j2["current_handicap"]:
+                            if j2 and not j2["current_handicap"]:
                                 hi2 = st.number_input(f"HI de {j2['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"np_hi2_{i}")
                                 j2["current_handicap"] = hi2
                                 j2["_hi_temporal"] = True
 
                     par18 = tee["par"] if tee["par"] >= 60 else tee["par"] * 2
-                    ch1 = course_handicap(float(j1["current_handicap"] or 0), tee["slope"], tee["rating"], par18 // 2)
-                    ch2 = course_handicap(float(j2["current_handicap"] or 0), tee["slope"], tee["rating"], par18 // 2)
-                    st.caption(f"Course HCP: {j1['name']}: **{ch1}** | {j2['name']}: **{ch2}**")
-                    parejas_setup.append({"nombre": nombre, "j1": j1, "j2": j2, "ch1": ch1, "ch2": ch2})
+                    if j1 and j2:
+                        ch1 = course_handicap(float(j1["current_handicap"] or 0), tee["slope"], tee["rating"], par18 // 2)
+                        ch2 = course_handicap(float(j2["current_handicap"] or 0), tee["slope"], tee["rating"], par18 // 2)
+                        st.caption(f"Course HCP: {j1['name']}: **{ch1}** | {j2['name']}: **{ch2}**")
+                        parejas_setup.append({"nombre": nombre, "j1": j1, "j2": j2, "ch1": ch1, "ch2": ch2})
+                    else:
+                        st.warning("⚠️ Selecciona ambos jugadores para continuar.")
 
             if st.button("🚀 Crear Torneo", type="primary"):
                 holes = get_holes()
