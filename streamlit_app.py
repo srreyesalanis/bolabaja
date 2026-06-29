@@ -588,37 +588,55 @@ elif st.session_state.screen == "leaderboard":
         for pair_name, jugadores in parejas_grp.items():
             j1 = jugadores[0]
             j2 = jugadores[1]
-            total = 0
-            hoyos = set()
+
+            front_total, front_hoyos = 0, set()
+            back_total, back_hoyos = 0, set()
+
             for (pn, gid, hn), nets in hole_scores.items():
                 if pn == pair_name and gid == grp["id"] and len(nets) >= 2:
-                    total += min(nets)
-                    hoyos.add(hn)
-            par_jugado = sum(h["par"] for h in holes if h["hole_number"] in hoyos)
-            vs_par = total - par_jugado if hoyos else 0
+                    bola = min(nets)
+                    if hn <= 9:
+                        front_total += bola
+                        front_hoyos.add(hn)
+                    else:
+                        back_total += bola
+                        back_hoyos.add(hn)
+
+            total_hoyos = front_hoyos | back_hoyos
+            total = front_total + back_total
+            par_front = sum(h["par"] for h in holes if h["hole_number"] in front_hoyos)
+            par_back = sum(h["par"] for h in holes if h["hole_number"] in back_hoyos)
+            par_total = par_front + par_back
+
+            def fmt(val, par, hoyos):
+                if not hoyos: return "-"
+                diff = val - par
+                return f"{val} ({'+' if diff > 0 else ''}{diff})"
+
             leader_data.append({
                 "Pos": 0,
                 "Grupo": grp["name"],
                 "Pareja": pair_name,
                 "Jugadores": f"{j1['player_name']} / {j2['player_name']}",
-                "HCP": f"{j1['course_handicap']} / {j2['course_handicap']}",
-                "Hoyos": f"{len(hoyos)}/18",
-                "Total Neto": total if hoyos else 9999,
-                "vs Par": f"{'+' if vs_par > 0 else ''}{vs_par}" if hoyos else "-",
+                "Front (1-9)": fmt(front_total, par_front, front_hoyos),
+                "Back (10-18)": fmt(back_total, par_back, back_hoyos),
+                "Total": fmt(total, par_total, total_hoyos),
+                "Hoyos": f"{len(total_hoyos)}/18",
+                "_sort": total if total_hoyos else 9999,
             })
 
-    leader_data.sort(key=lambda x: x["Total Neto"])
+    leader_data.sort(key=lambda x: x["_sort"])
     for i, r in enumerate(leader_data):
         r["Pos"] = i + 1
-        if r["Total Neto"] == 9999:
-            r["Total Neto"] = "-"
 
-    if leader_data and leader_data[0]["Total Neto"] != "-":
+    if leader_data and leader_data[0]["_sort"] != 9999:
         lider = leader_data[0]
-        st.success(f"Lider: {lider['Pareja']} ({lider['Jugadores']}) - {lider['vs Par']} | Grupo: {lider['Grupo']}")
+        st.success(f"🥇 Lider: {lider['Pareja']} ({lider['Jugadores']}) — {lider['Total']} | Grupo: {lider['Grupo']}")
+
+    for r in leader_data: del r["_sort"]
 
     st.dataframe(
-        pd.DataFrame(leader_data)[["Pos", "Grupo", "Pareja", "Jugadores", "HCP", "Hoyos", "Total Neto", "vs Par"]],
+        pd.DataFrame(leader_data)[["Pos", "Grupo", "Pareja", "Jugadores", "Front (1-9)", "Back (10-18)", "Total", "Hoyos"]],
         use_container_width=True, hide_index=True
     )
 
