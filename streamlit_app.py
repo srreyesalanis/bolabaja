@@ -498,7 +498,8 @@ elif st.session_state.screen == "scores":
     if st.button(f"Guardar Hoyo {hole_num}", type="primary"):
         for pair_name, pid, gid, strokes, net in scores_to_save:
             upsert_score(t["id"], g["id"], pair_name, pid, gid, hole_num, strokes, net)
-        st.success(f"Hoyo {hole_num} guardado.")
+        if hole_num < 18:
+            st.session_state.hole_num = hole_num + 1
         st.rerun()
 
     st.markdown("---")
