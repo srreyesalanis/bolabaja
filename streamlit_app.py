@@ -149,7 +149,9 @@ if st.session_state.screen == "home":
                 admin_pass = st.text_input("Password", type="password", key="admin_pass")
                 if st.button("Iniciar sesion", key="admin_login_btn"):
                     try:
-                        auth_res = supabase.auth.sign_in_with_password({"email": admin_email, "password": admin_pass})
+                        from supabase import create_client as _cc
+                        _tmp = _cc(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+                        auth_res = _tmp.auth.sign_in_with_password({"email": admin_email, "password": admin_pass})
                         if auth_res.user:
                             st.session_state.admin_authed = True
                             st.session_state.show_admin_login = False
@@ -162,29 +164,31 @@ if st.session_state.screen == "home":
             st.caption(f"✅ Sesion admin activa")
             if st.button("Cerrar sesion", key="admin_logout"):
                 st.session_state.admin_authed = False
-                supabase.auth.sign_out()
                 st.rerun()
 
             st.markdown("**Crear nuevo torneo**")
-            tees = get_tees()
-            tee_opts = {f"{t['color']} — Rating {t['rating']} / Slope {t['slope']}": t for t in tees}
-            with st.form("form_org"):
-                fecha = st.date_input("Fecha", value=date.today())
-                tee_label = st.selectbox("Tee", list(tee_opts.keys()))
-                submitted = st.form_submit_button("🚀 Crear Torneo", type="primary")
+            tees = supabase.table("tees").select("id, name, color, rating, slope, par").execute().data
+            if not tees:
+                st.error("❌ No se pudieron cargar los tees. Revisa la conexion a Supabase.")
+            else:
+                tee_opts = {f"{t['color']} — Rating {t['rating']} / Slope {t['slope']}": t for t in tees}
+                with st.form("form_org"):
+                    fecha = st.date_input("Fecha", value=date.today())
+                    tee_label = st.selectbox("Tee", list(tee_opts.keys()))
+                    submitted = st.form_submit_button("🚀 Crear Torneo", type="primary")
 
-            if submitted:
-                tee = tee_opts[tee_label]
-                code = gen_code("LC")
-                supabase.table("tournaments").insert({
-                    "name": f"Bola Baja — {fecha}",
-                    "date": str(fecha),
-                    "tee_id": tee["id"],
-                    "format": "bola_baja_parejas",
-                    "access_code": code,
-                }).execute()
-                st.success(f"✅ Torneo creado")
-                st.info(f"**Codigo maestro:** `{code}`\nComparte este codigo con los lideres de grupo.")
+                if submitted:
+                    tee = tee_opts[tee_label]
+                    code = gen_code("LC")
+                    supabase.table("tournaments").insert({
+                        "name": f"Bola Baja — {fecha}",
+                        "date": str(fecha),
+                        "tee_id": tee["id"],
+                        "format": "bola_baja_parejas",
+                        "access_code": code,
+                    }).execute()
+                    st.success(f"✅ Torneo creado")
+                    st.info(f"**Codigo maestro:** `{code}`\nComparte este codigo con los lideres de grupo.")
 
             st.markdown("---")
             st.markdown("**Borrar torneo**")
@@ -250,9 +254,8 @@ if st.session_state.screen == "home":
         st.subheader("👀 Espectador")
         st.caption("Ve el leaderboard general")
 
-        torneos = get_active_tournaments()
-        if torneos:
-            t_opts = {f"{t['name']} ({t['access_code']})": t for t in torneos}
+            t_opts = {f"{t['name']} — {t['date']}": t for t in torneos}
+            t_opts = {f"{t['name']} — {t['date']}": t for t in torneos}
             sel = st.selectbox("Torneo", list(t_opts.keys()), key="spec_sel")
             if st.button("Ver Leaderboard", type="primary"):
                 t = t_opts[sel]
