@@ -79,7 +79,6 @@ def save_hole_score(tournament_id, pair_name, player_id, guest_id, hole_number, 
         .eq("hole_number", hole_number) \
         .eq("player_id", player_id if player_id else null_uuid) \
         .execute()
-
     data = {
         "tournament_id": tournament_id,
         "pair_name": pair_name,
@@ -139,10 +138,10 @@ if st.session_state.tournament_id is None:
 
     col_left, col_right = st.columns(2)
 
-    # ── LÍDER ──────────────────────────────────────────────────────────────
+    # ── LIDER ──────────────────────────────────────────────────────────────
     with col_left:
-        st.subheader("🏌️ Líder de Grupo")
-        st.caption("Crea un nuevo torneo o continúa uno existente")
+        st.subheader("🏌️ Lider de Grupo")
+        st.caption("Crea un nuevo torneo o continua uno existente")
 
         with st.expander("➕ Crear nuevo torneo", expanded=True):
             players = get_players()
@@ -157,7 +156,7 @@ if st.session_state.tournament_id is None:
             st.markdown("**Parejas**")
             player_options = {f"{p['name']} (HI: {p['current_handicap']})": p for p in players}
             player_labels = list(player_options.keys())
-            num_parejas = st.number_input("Número de parejas", min_value=2, max_value=8, value=2, key="new_num_parejas")
+            num_parejas = st.number_input("Numero de parejas", min_value=2, max_value=8, value=2, key="new_num_parejas")
 
             parejas_setup = []
             for i in range(int(num_parejas)):
@@ -175,7 +174,7 @@ if st.session_state.tournament_id is None:
                             j1_label = st.selectbox("Jugador 1", player_labels, key=f"np_j1_{i}")
                             j1 = dict(player_options[j1_label])
                             if not j1["current_handicap"]:
-                                hi1 = st.number_input(f"⚠️ HI de {j1['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"np_hi1_{i}")
+                                hi1 = st.number_input(f"HI de {j1['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"np_hi1_{i}")
                                 j1["current_handicap"] = hi1
                                 j1["_hi_temporal"] = True
                     with c3:
@@ -188,14 +187,14 @@ if st.session_state.tournament_id is None:
                             j2_label = st.selectbox("Jugador 2", player_labels, key=f"np_j2_{i}")
                             j2 = dict(player_options[j2_label])
                             if not j2["current_handicap"]:
-                                hi2 = st.number_input(f"⚠️ HI de {j2['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"np_hi2_{i}")
+                                hi2 = st.number_input(f"HI de {j2['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"np_hi2_{i}")
                                 j2["current_handicap"] = hi2
                                 j2["_hi_temporal"] = True
 
                     par18 = tee["par"] if tee["par"] >= 60 else tee["par"] * 2
                     ch1 = course_handicap(float(j1["current_handicap"] or 0), tee["slope"], tee["rating"], par18 // 2)
                     ch2 = course_handicap(float(j2["current_handicap"] or 0), tee["slope"], tee["rating"], par18 // 2)
-                    st.caption(f"Course HCP → {j1['name']}: **{ch1}** | {j2['name']}: **{ch2}**")
+                    st.caption(f"Course HCP: {j1['name']}: **{ch1}** | {j2['name']}: **{ch2}**")
                     parejas_setup.append({"nombre": nombre, "j1": j1, "j2": j2, "ch1": ch1, "ch2": ch2})
 
             if st.button("🚀 Crear Torneo", type="primary"):
@@ -260,14 +259,15 @@ if st.session_state.tournament_id is None:
                 st.rerun()
 
         st.markdown("---")
-        with st.expander("🔑 Continuar torneo con código"):
-            code_input = st.text_input("Código del torneo (ej. LC-1234)", key="leader_code")
-            if st.button("Entrar como Líder"):
+        with st.expander("🔑 Continuar torneo con codigo"):
+            code_input = st.text_input("Codigo del torneo (ej. LC-1234)", key="leader_code")
+            if st.button("Entrar como Lider"):
                 t = get_tournament_by_code(code_input)
-                if t:\n                    load_tournament_session(t, "leader")
+                if t:
+                    load_tournament_session(t, "leader")
                     st.rerun()
                 else:
-                    st.error("❌ Código no encontrado.")
+                    st.error("❌ Codigo no encontrado.")
 
     # ── ESPECTADOR ─────────────────────────────────────────────────────────
     with col_right:
@@ -301,7 +301,7 @@ else:
     st.title("⛳ Bola Baja por Parejas — Las Cruces")
     col_info, col_exit = st.columns([4, 1])
     with col_info:
-        st.caption(f"📅 {T['fecha']} | Tee: {tee['color']} | Rating: {tee['rating']} | Slope: {tee['slope']} | Código: **{code}**")
+        st.caption(f"📅 {T['fecha']} | Tee: {tee['color']} | Rating: {tee['rating']} | Slope: {tee['slope']} | Codigo: **{code}**")
     with col_exit:
         if st.button("🚪 Salir"):
             st.session_state.role = None
@@ -318,7 +318,7 @@ else:
     else:
         tab_leaderboard = st.tabs(["🏆 Leaderboard"])[0]
 
-    # ── TAB SCORES (solo líder) ────────────────────────────────────────────
+    # ── TAB SCORES (solo lider) ────────────────────────────────────────────
     if role == "leader":
         with tab_scores:
             st.subheader("📝 Captura de Scores")
@@ -350,12 +350,15 @@ else:
                     prev2 = existing_map.get((pareja["nombre"], hole_num, pid2, gid2), hole_info["par"])
 
                     st.caption(f"{pareja['j1']['name']} (+{sg1})")
-                    g1 = st.number_input(f"Golpes {pareja['j1']['name']}", min_value=1, max_value=15,
-                        value=prev1, key=f"g1_{pareja['nombre']}_{hole_num}")
-
+                    g1 = st.number_input(
+                        f"Golpes {pareja['j1']['name']}", min_value=1, max_value=15,
+                        value=prev1, key=f"g1_{pareja['nombre']}_{hole_num}"
+                    )
                     st.caption(f"{pareja['j2']['name']} (+{sg2})")
-                    g2 = st.number_input(f"Golpes {pareja['j2']['name']}", min_value=1, max_value=15,
-                        value=prev2, key=f"g2_{pareja['nombre']}_{hole_num}")
+                    g2 = st.number_input(
+                        f"Golpes {pareja['j2']['name']}", min_value=1, max_value=15,
+                        value=prev2, key=f"g2_{pareja['nombre']}_{hole_num}"
+                    )
 
                     net1 = net_score(g1, sg1)
                     net2 = net_score(g2, sg2)
@@ -374,7 +377,7 @@ else:
     with tab_leaderboard:
         if role == "spectator":
             st.subheader("🏆 Leaderboard en vivo")
-            st.caption("Se actualiza automáticamente cada 30 segundos")
+            st.caption("Se actualiza automaticamente cada 30 segundos")
 
         scores_db = get_tournament_scores(tournament_id)
 
@@ -411,7 +414,7 @@ else:
 
         if leader_data and isinstance(leader_data[0]["Total Neto"], int):
             ganador = leader_data[0]
-            st.success(f"🥇 Líder: **{ganador['Pareja']}** — {ganador['vs Par']} ({ganador['Hoyos']} hoyos)")
+            st.success(f"🥇 Lider: **{ganador['Pareja']}** — {ganador['vs Par']} ({ganador['Hoyos']} hoyos)")
 
         st.dataframe(
             pd.DataFrame(leader_data)[["Pos", "Pareja", "Jugadores", "Hoyos", "Total Neto", "vs Par"]],
