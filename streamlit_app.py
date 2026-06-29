@@ -435,20 +435,32 @@ elif st.session_state.screen == "scores":
     # Hoyos con scores guardados (al menos una entrada)
     hoyos_con_scores = set(s["hole_number"] for s in existing_scores)
 
-    # Selector de hoyo como cuadricula HTML
+    # Selector de hoyo como cuadricula clickeable
     st.markdown("**Selecciona hoyo:**")
-    
-    # Construir grid HTML con botones de formulario
-    hole_html = '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:12px;">'
-    for h in range(1, 19):
-        tiene = h in hoyos_con_scores
-        bg = "#2d6a2d" if tiene else "#444"
-        hole_html += f'<div style="background:{bg};color:white;border-radius:8px;padding:8px 0;text-align:center;font-weight:bold;font-size:16px;">{h}</div>'
-    hole_html += '</div>'
-    st.markdown(hole_html, unsafe_allow_html=True)
+    st.markdown("""
+    <style>
+    div[data-testid="column"] > div > div > div > button {
+        width: 100% !important;
+        padding: 8px 0 !important;
+        font-size: 15px !important;
+        font-weight: bold !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-    hole_num = st.number_input("Hoyo", min_value=1, max_value=18, value=st.session_state.get("hole_num", 1), step=1)
-    st.session_state.hole_num = hole_num
+    filas = [list(range(1, 7)), list(range(7, 13)), list(range(13, 19))]
+    for fila in filas:
+        cols_h = st.columns(6)
+        for idx, h in enumerate(fila):
+            tiene = h in hoyos_con_scores
+            emoji = "🟢" if tiene else "⚫"
+            if cols_h[idx].button(f"{emoji}{h}", key=f"hole_btn_{h}", use_container_width=True):
+                st.session_state.hole_num = h
+
+    if "hole_num" not in st.session_state:
+        st.session_state.hole_num = 1
+    hole_num = st.session_state.hole_num
+    st.caption(f"Hoyo seleccionado: **{hole_num}**")
 
     hole_info = next(h for h in holes if h["hole_number"] == hole_num)
     st.markdown(f"### Hoyo {hole_num} — Par {hole_info['par']} | HCP Hoyo: {hole_info['handicap']}")
