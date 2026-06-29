@@ -297,29 +297,41 @@ elif st.session_state.screen == "leader_setup":
         st.markdown(f"**Pareja {i+1}**")
         pair_name = st.text_input("Nombre de la pareja", value=f"Pareja {i+1}", key=f"pname_{i}")
 
+        col_j1, col_j2 = st.columns(2)
+
         # Jugador 1
-        st.caption("Jugador 1")
-        guest1 = st.checkbox("Invitado", key=f"g1_{i}")
-        if guest1:
-            j1_name = st.text_input("Nombre", key=f"j1gn_{i}")
-            hi1 = st.number_input("Handicap Index", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"j1gh_{i}")
-            j1 = {"id": None, "name": j1_name or "Invitado 1", "current_handicap": hi1, "_is_guest": True}
-        else:
-            j1_label = st.selectbox("Jugador 1", player_labels, key=f"j1_{i}")
-            j1_data = player_opts.get(j1_label)
-            j1 = dict(j1_data) if j1_data else None
+        with col_j1:
+            st.caption("Jugador 1")
+            guest1 = st.checkbox("Invitado", key=f"g1_{i}")
+            if guest1:
+                j1_name = st.text_input("Nombre", key=f"j1gn_{i}")
+                hi1 = st.number_input("HI", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"j1gh_{i}")
+                j1 = {"id": None, "name": j1_name or "Invitado 1", "current_handicap": hi1, "_is_guest": True}
+            else:
+                j1_label = st.selectbox("Jugador 1", player_labels, key=f"j1_{i}")
+                j1_data = player_opts.get(j1_label)
+                j1 = dict(j1_data) if j1_data else None
+                if j1 is not None and not j1.get("current_handicap"):
+                    hi1 = st.number_input("HI manual", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"hi1_{i}")
+                    j1["current_handicap"] = hi1
+                    j1["_hi_temporal"] = True
 
         # Jugador 2
-        st.caption("Jugador 2")
-        guest2 = st.checkbox("Invitado", key=f"g2_{i}")
-        if guest2:
-            j2_name = st.text_input("Nombre", key=f"j2gn_{i}")
-            hi2 = st.number_input("Handicap Index", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"j2gh_{i}")
-            j2 = {"id": None, "name": j2_name or "Invitado 2", "current_handicap": hi2, "_is_guest": True}
-        else:
-            j2_label = st.selectbox("Jugador 2", player_labels, key=f"j2_{i}")
-            j2_data = player_opts.get(j2_label)
-            j2 = dict(j2_data) if j2_data else None
+        with col_j2:
+            st.caption("Jugador 2")
+            guest2 = st.checkbox("Invitado", key=f"g2_{i}")
+            if guest2:
+                j2_name = st.text_input("Nombre", key=f"j2gn_{i}")
+                hi2 = st.number_input("HI", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"j2gh_{i}")
+                j2 = {"id": None, "name": j2_name or "Invitado 2", "current_handicap": hi2, "_is_guest": True}
+            else:
+                j2_label = st.selectbox("Jugador 2", player_labels, key=f"j2_{i}")
+                j2_data = player_opts.get(j2_label)
+                j2 = dict(j2_data) if j2_data else None
+                if j2 is not None and not j2.get("current_handicap"):
+                    hi2 = st.number_input("HI manual", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"hi2_{i}")
+                    j2["current_handicap"] = hi2
+                    j2["_hi_temporal"] = True
 
         if j1 is not None and j2 is not None:
             ch1 = course_handicap(j1.get("current_handicap") or 0, tee["slope"], tee["rating"], par18 // 2)
