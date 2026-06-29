@@ -302,41 +302,36 @@ elif st.session_state.screen == "leader_setup":
     parejas_setup = []
     valid = True
     for i in range(int(num_parejas)):
-        j1, j2 = None, None
         st.markdown(f"**Pareja {i+1}**")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            pair_name = st.text_input("Nombre de la pareja", value=f"Pareja {i+1}", key=f"ls_pname_{i}")
-        with c2:
-            st.caption("Jugador 1")
-            guest1 = st.checkbox("Invitado", key=f"ls_g1_{i}")
-            if guest1:
-                j1_name = st.text_input("Nombre", key=f"ls_j1gn_{i}")
-                hi1 = st.number_input("Handicap Index", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"ls_j1gh_{i}")
-                j1 = {"id": None, "name": j1_name or "Invitado 1", "current_handicap": hi1, "_is_guest": True}
-            else:
-                j1_label = st.selectbox("Jugador 1", player_labels, key=f"ls_j1_{i}")
-                j1 = player_options.get(j1_label)
-                j1 = dict(j1) if j1 else None
-                if j1 and not j1.get("current_handicap"):
-                    hi1 = st.number_input(f"HI de {j1['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"ls_hi1_{i}")
-                    j1["current_handicap"] = hi1
-                    j1["_hi_temporal"] = True
-        with c3:
-            st.caption("Jugador 2")
-            guest2 = st.checkbox("Invitado", key=f"ls_g2_{i}")
-            if guest2:
-                j2_name = st.text_input("Nombre", key=f"ls_j2gn_{i}")
-                hi2 = st.number_input("Handicap Index", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"ls_j2gh_{i}")
-                j2 = {"id": None, "name": j2_name or "Invitado 2", "current_handicap": hi2, "_is_guest": True}
-            else:
-                j2_label = st.selectbox("Jugador 2", player_labels, key=f"ls_j2_{i}")
-                j2 = player_options.get(j2_label)
-                j2 = dict(j2) if j2 else None
-                if j2 and not j2.get("current_handicap"):
-                    hi2 = st.number_input(f"HI de {j2['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"ls_hi2_{i}")
-                    j2["current_handicap"] = hi2
-                    j2["_hi_temporal"] = True
+        pair_name = st.text_input("Nombre de la pareja", value=f"Pareja {i+1}", key=f"ls_pname_{i}")
+
+        st.caption("Jugador 1")
+        guest1 = st.checkbox("Invitado", key=f"ls_g1_{i}")
+        if guest1:
+            j1_name = st.text_input("Nombre", key=f"ls_j1gn_{i}")
+            hi1 = st.number_input("Handicap Index", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"ls_j1gh_{i}")
+            j1 = {"id": None, "name": j1_name or "Invitado 1", "current_handicap": hi1, "_is_guest": True}
+        else:
+            j1_label = st.selectbox("Jugador 1", player_labels, key=f"ls_j1_{i}")
+            j1 = dict(player_options[j1_label]) if player_options.get(j1_label) else None
+            if j1 and not j1.get("current_handicap"):
+                hi1 = st.number_input(f"HI de {j1['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"ls_hi1_{i}")
+                j1["current_handicap"] = hi1
+                j1["_hi_temporal"] = True
+
+        st.caption("Jugador 2")
+        guest2 = st.checkbox("Invitado", key=f"ls_g2_{i}")
+        if guest2:
+            j2_name = st.text_input("Nombre", key=f"ls_j2gn_{i}")
+            hi2 = st.number_input("Handicap Index", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"ls_j2gh_{i}")
+            j2 = {"id": None, "name": j2_name or "Invitado 2", "current_handicap": hi2, "_is_guest": True}
+        else:
+            j2_label = st.selectbox("Jugador 2", player_labels, key=f"ls_j2_{i}")
+            j2 = dict(player_options[j2_label]) if player_options.get(j2_label) else None
+            if j2 and not j2.get("current_handicap"):
+                hi2 = st.number_input(f"HI de {j2['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"ls_hi2_{i}")
+                j2["current_handicap"] = hi2
+                j2["_hi_temporal"] = True
 
         if j1 and j2:
             ch1 = course_handicap(j1["current_handicap"], tee["slope"], tee["rating"], par18 // 2)
