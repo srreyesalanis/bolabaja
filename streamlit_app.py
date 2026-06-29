@@ -293,7 +293,7 @@ elif st.session_state.screen == "leader_setup":
     player_labels = list(player_options.keys())
 
     par18 = tee["par"] if tee["par"] >= 60 else tee["par"] * 2
-
+    group_name = st.text_input("Nombre del grupo (ej. Grupo 1)", value="Grupo 1")
     group_name = st.text_input("Nombre del grupo (ej. Carro 1)", value="Carro 1")
 
     num_parejas = st.number_input("Numero de parejas en este grupo", min_value=1, max_value=8, value=2)
@@ -313,8 +313,8 @@ elif st.session_state.screen == "leader_setup":
                 hi1 = st.number_input("Handicap Index", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"ls_j1gh_{i}")
                 j1 = {"id": None, "name": j1_name or "Invitado 1", "current_handicap": hi1, "_is_guest": True}
             else:
-                j1_label = st.selectbox("Jugador 1", player_labels, key=f"ls_j1_{i}")
-                j1 = dict(player_options[j1_label]) if player_options[j1_label] else None
+                j1 = player_options.get(j1_label)
+                j1 = dict(j1) if j1 else None
                 if j1 and not j1.get("current_handicap"):
                     hi1 = st.number_input(f"HI de {j1['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"ls_hi1_{i}")
                     j1["current_handicap"] = hi1
@@ -327,8 +327,8 @@ elif st.session_state.screen == "leader_setup":
                 hi2 = st.number_input("Handicap Index", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"ls_j2gh_{i}")
                 j2 = {"id": None, "name": j2_name or "Invitado 2", "current_handicap": hi2, "_is_guest": True}
             else:
-                j2_label = st.selectbox("Jugador 2", player_labels, key=f"ls_j2_{i}")
-                j2 = dict(player_options[j2_label]) if player_options[j2_label] else None
+                j2 = player_options.get(j2_label)
+                j2 = dict(j2) if j2 else None
                 if j2 and not j2.get("current_handicap"):
                     hi2 = st.number_input(f"HI de {j2['name']}", min_value=0.0, max_value=54.0, value=0.0, step=0.1, key=f"ls_hi2_{i}")
                     j2["current_handicap"] = hi2
