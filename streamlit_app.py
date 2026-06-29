@@ -5,6 +5,7 @@ from datetime import date
 import random
 import string
 import time
+from collections import defaultdict
 
 # ─── CONFIG ───────────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Bola Baja por Parejas ⛳", layout="wide")
@@ -69,14 +70,14 @@ def get_tournament_scores(tournament_id: str):
     res = supabase.table("tournament_scores").select("*").eq("tournament_id", tournament_id).execute()
     return res.data
 
-def save_hole_score(tournament_id: str, pair_name: str, player_id, guest_id, hole_number: int, strokes: int, net_strokes: int):
-    # Upsert por tournament_id + pair_name + player/guest + hole_number
-    existing = supabase.table("tournament_scores")\
-        .select("id")\
-        .eq("tournament_id", tournament_id)\
-        .eq("pair_name", pair_name)\
-        .eq("hole_number", hole_number)\
-        .eq("player_id", player_id if player_id else "00000000-0000-0000-0000-000000000000")\
+def save_hole_score(tournament_id, pair_name, player_id, guest_id, hole_number, strokes, net_strokes):
+    null_uuid = "00000000-0000-0000-0000-000000000000"
+    existing = supabase.table("tournament_scores") \
+        .select("id") \
+        .eq("tournament_id", tournament_id) \
+        .eq("pair_name", pair_name) \
+        .eq("hole_number", hole_number) \
+        .eq("player_id", player_id if player_id else null_uuid) \
         .execute()
 
     data = {
@@ -88,15 +89,37 @@ def save_hole_score(tournament_id: str, pair_name: str, player_id, guest_id, hol
         "strokes": strokes,
         "net_strokes": net_strokes,
     }
-
     if existing.data:
         supabase.table("tournament_scores").update(data).eq("id", existing.data[0]["id"]).execute()
     else:
         supabase.table("tournament_scores").insert(data).execute()
 
+def load_tournament_session(t, role):
+    holes = get_holes()
+    pairs = get_tournament_pairs(t["id"])
+    tee_res = supabase.table("tees").select("*").eq("id", t["tee_id"]).execute()
+    tee = tee_res.data[0]
+    parejas = [{
+        "nombre": p["pair_name"],
+        "j1": {"id": p["player1_id"], "name": p["player1_name"], "current_handicap": None, "_guest_db_id": p["player1_guest_id"]},
+        "j2": {"id": p["player2_id"], "name": p["player2_name"], "current_handicap": None, "_guest_db_id": p["player2_guest_id"]},
+        "ch1": p["player1_ch"],
+        "ch2": p["player2_ch"],
+    } for p in pairs]
+    st.session_state.role = role
+    st.session_state.tournament_id = t["id"]
+    st.session_state.tournament_data = {"tee": tee, "fecha": t["date"], "code": t["access_code"]}
+    st.session_state.parejas = parejas
+    st.session_state.strokes_map = {
+        p["nombre"]: {
+            "j1": strokes_given(p["ch1"], holes),
+            "j2": strokes_given(p["ch2"], holes),
+        } for p in parejas
+    }
+
 # ─── SESSION STATE ─────────────────────────────────────────────────────────────
 if "role" not in st.session_state:
-    st.session_state.role = None          # "leader" | "spectator"
+    st.session_state.role = None
 if "tournament_id" not in st.session_state:
     st.session_state.tournament_id = None
 if "tournament_data" not in st.session_state:
@@ -134,7 +157,6 @@ if st.session_state.tournament_id is None:
             st.markdown("**Parejas**")
             player_options = {f"{p['name']} (HI: {p['current_handicap']})": p for p in players}
             player_labels = list(player_options.keys())
-
             num_parejas = st.number_input("Número de parejas", min_value=2, max_value=8, value=2, key="new_num_parejas")
 
             parejas_setup = []
@@ -178,10 +200,8 @@ if st.session_state.tournament_id is None:
 
             if st.button("🚀 Crear Torneo", type="primary"):
                 holes = get_holes()
-                # Generar código único
                 code = generate_access_code()
 
-                # Guardar invitados / handicaps temporales
                 for p in parejas_setup:
                     for jkey in ["j1", "j2"]:
                         j = p[jkey]
@@ -201,7 +221,6 @@ if st.session_state.tournament_id is None:
                             }).execute()
                             p[jkey]["_guest_db_id"] = res.data[0]["id"]
 
-                # Crear torneo
                 t_res = supabase.table("tournaments").insert({
                     "name": f"Bola Baja Parejas — {fecha}",
                     "date": str(fecha),
@@ -211,7 +230,6 @@ if st.session_state.tournament_id is None:
                 }).execute()
                 tournament_id = t_res.data[0]["id"]
 
-                # Guardar parejas en tournament_pairs
                 for idx, p in enumerate(parejas_setup):
                     is_guest1 = p["j1"].get("_is_guest") or p["j1"].get("_hi_temporal")
                     is_guest2 = p["j2"].get("_is_guest") or p["j2"].get("_hi_temporal")
@@ -246,26 +264,7 @@ if st.session_state.tournament_id is None:
             code_input = st.text_input("Código del torneo (ej. LC-1234)", key="leader_code")
             if st.button("Entrar como Líder"):
                 t = get_tournament_by_code(code_input)
-                if t:\n                    holes = get_holes()\n                    pairs = get_tournament_pairs(t["id"])
-                    tee_res = supabase.table("tees").select("*").eq("id", t["tee_id"]).execute()
-                    tee = tee_res.data[0]
-                    parejas = [{
-                        "nombre": p["pair_name"],
-                        "j1": {"id": p["player1_id"], "name": p["player1_name"], "current_handicap": None, "_guest_db_id": p["player1_guest_id"]},
-                        "j2": {"id": p["player2_id"], "name": p["player2_name"], "current_handicap": None, "_guest_db_id": p["player2_guest_id"]},
-                        "ch1": p["player1_ch"],
-                        "ch2": p["player2_ch"],
-                    } for p in pairs]
-                    st.session_state.role = "leader"
-                    st.session_state.tournament_id = t["id"]
-                    st.session_state.tournament_data = {"tee": tee, "fecha": t["date"], "code": t["access_code"]}
-                    st.session_state.parejas = parejas
-                    st.session_state.strokes_map = {
-                        p["nombre"]: {
-                            "j1": strokes_given(p["ch1"], holes),
-                            "j2": strokes_given(p["ch2"], holes),
-                        } for p in parejas
-                    }
+                if t:\n                    load_tournament_session(t, "leader")
                     st.rerun()
                 else:
                     st.error("❌ Código no encontrado.")
@@ -281,27 +280,7 @@ if st.session_state.tournament_id is None:
             sel = st.selectbox("Torneos activos", list(torneo_opts.keys()), key="spec_select")
             if st.button("Ver Leaderboard", type="primary"):
                 t = torneo_opts[sel]
-                holes = get_holes()
-                pairs = get_tournament_pairs(t["id"])
-                tee_res = supabase.table("tees").select("*").eq("id", t["tee_id"]).execute()
-                tee = tee_res.data[0]
-                parejas = [{
-                    "nombre": p["pair_name"],
-                    "j1": {"id": p["player1_id"], "name": p["player1_name"], "current_handicap": None},
-                    "j2": {"id": p["player2_id"], "name": p["player2_name"], "current_handicap": None},
-                    "ch1": p["player1_ch"],
-                    "ch2": p["player2_ch"],
-                } for p in pairs]
-                st.session_state.role = "spectator"
-                st.session_state.tournament_id = t["id"]
-                st.session_state.tournament_data = {"tee": tee, "fecha": t["date"], "code": t["access_code"]}
-                st.session_state.parejas = parejas
-                st.session_state.strokes_map = {
-                    p["nombre"]: {
-                        "j1": strokes_given(p["ch1"], holes),
-                        "j2": strokes_given(p["ch2"], holes),
-                    } for p in parejas
-                }
+                load_tournament_session(t, "spectator")
                 st.rerun()
         else:
             st.info("No hay torneos activos.")
@@ -316,23 +295,24 @@ else:
     strokes_map = st.session_state.strokes_map
     role = st.session_state.role
     tournament_id = st.session_state.tournament_id
-
     tee = T["tee"]
     code = T.get("code", "")
 
-    st.title(f"⛳ Bola Baja por Parejas — Las Cruces")
+    st.title("⛳ Bola Baja por Parejas — Las Cruces")
     col_info, col_exit = st.columns([4, 1])
     with col_info:
         st.caption(f"📅 {T['fecha']} | Tee: {tee['color']} | Rating: {tee['rating']} | Slope: {tee['slope']} | Código: **{code}**")
     with col_exit:
         if st.button("🚪 Salir"):
-            for key in ["role", "tournament_id", "tournament_data", "parejas", "strokes_map"]:
-                st.session_state[key] = None if key != "parejas" and key != "strokes_map" else ({} if key == "strokes_map" else [])
+            st.session_state.role = None
+            st.session_state.tournament_id = None
+            st.session_state.tournament_data = None
+            st.session_state.parejas = []
+            st.session_state.strokes_map = {}
             st.rerun()
 
     st.markdown("---")
 
-    # ── TABS ───────────────────────────────────────────────────────────────
     if role == "leader":
         tab_scores, tab_leaderboard = st.tabs(["📝 Scores", "🏆 Leaderboard"])
     else:
@@ -347,12 +327,10 @@ else:
             hole_info = next(h for h in holes if h["hole_number"] == hole_num)
             st.markdown(f"### Hoyo {hole_num} — Par {hole_info['par']} | HCP Hoyo: {hole_info['handicap']}")
 
-            # Cargar scores existentes de Supabase para este hoyo
             existing_scores = get_tournament_scores(tournament_id)
             existing_map = {}
             for s in existing_scores:
-                key = (s["pair_name"], s["hole_number"], s["player_id"], s["guest_id"])
-                existing_map[key] = s["strokes"]
+                existing_map[(s["pair_name"], s["hole_number"], s["player_id"], s["guest_id"])] = s["strokes"]
 
             cols = st.columns(len(parejas))
             scores_to_save = []
@@ -400,16 +378,9 @@ else:
 
         scores_db = get_tournament_scores(tournament_id)
 
-        # Construir leaderboard
-        leaderboard = {}
-        hoyos_jugados_map = {}
+        leaderboard = {p["nombre"]: 0 for p in parejas}
+        hoyos_jugados_map = {p["nombre"]: set() for p in parejas}
 
-        for pareja in parejas:
-            leaderboard[pareja["nombre"]] = 0
-            hoyos_jugados_map[pareja["nombre"]] = set()
-
-        # Agrupar por pareja y hoyo → bola baja neta
-        from collections import defaultdict
         hole_scores = defaultdict(list)
         for s in scores_db:
             hole_scores[(s["pair_name"], s["hole_number"])].append(s["net_strokes"])
@@ -419,7 +390,6 @@ else:
                 leaderboard[pair_name] += min(nets)
                 hoyos_jugados_map[pair_name].add(hn)
 
-        par_total = sum(h["par"] for h in holes)
         leader_data = []
         for pareja in parejas:
             hoyos = len(hoyos_jugados_map[pareja["nombre"]])
@@ -427,6 +397,7 @@ else:
             par_jugado = sum(h["par"] for h in holes if h["hole_number"] in hoyos_jugados_map[pareja["nombre"]])
             vs_par = total - par_jugado if hoyos > 0 else 0
             leader_data.append({
+                "Pos": 0,
                 "Pareja": pareja["nombre"],
                 "Jugadores": f"{pareja['j1']['name']} / {pareja['j2']['name']}",
                 "Hoyos": f"{hoyos}/18",
@@ -442,8 +413,10 @@ else:
             ganador = leader_data[0]
             st.success(f"🥇 Líder: **{ganador['Pareja']}** — {ganador['vs Par']} ({ganador['Hoyos']} hoyos)")
 
-        st.dataframe(pd.DataFrame(leader_data)[["Pos", "Pareja", "Jugadores", "Hoyos", "Total Neto", "vs Par"]],
-            use_container_width=True, hide_index=True)
+        st.dataframe(
+            pd.DataFrame(leader_data)[["Pos", "Pareja", "Jugadores", "Hoyos", "Total Neto", "vs Par"]],
+            use_container_width=True, hide_index=True
+        )
 
         if role == "spectator":
             time.sleep(30)
