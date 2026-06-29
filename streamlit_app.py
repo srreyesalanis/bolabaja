@@ -132,7 +132,7 @@ for key, default in [
         st.session_state[key] = default
 
 def go_home():
-    st.query_params["screen"] = "home"
+    st.session_state.screen = "home"
     st.session_state.role = None
     st.session_state.tournament = None
     st.session_state.group = None
@@ -143,9 +143,14 @@ def go_home():
 # ==============================================================================
 # ROUTER - una sola pantalla a la vez
 # ==============================================================================
-_screen = st.query_params.get("screen", ["home"])[0] if "screen" in st.query_params else "home"
-if _screen not in ["home", "leader_setup", "scores", "leaderboard"]:
-    _screen = "home"
+_screen = st.session_state.screen
+
+# Prevenir render fantasma: si el screen cambio en este ciclo, limpiar y rerenderizar
+if "_last_screen" not in st.session_state:
+    st.session_state._last_screen = _screen
+elif st.session_state._last_screen != _screen:
+    st.session_state._last_screen = _screen
+    st.rerun()
 
 if _screen == "home":
     st.title("Bola Baja por Parejas - Las Cruces")
@@ -230,7 +235,7 @@ if _screen == "home":
                 tee_res = supabase.table("tees").select("*").eq("id", t["tee_id"]).execute()
                 st.session_state.tournament = {**t, "tee": tee_res.data[0]}
                 st.session_state.role = "leader"
-                st.query_params["screen"] = "leader_setup"
+                st.session_state.screen = "leader_setup"
                 st.rerun()
             else:
                 st.error("Codigo no encontrado.")
@@ -251,7 +256,7 @@ if _screen == "home":
                 st.session_state.parejas = parejas_agrupadas
                 st.session_state.strokes_map = build_strokes_map(parejas_agrupadas, holes)
                 st.session_state.role = "leader"
-                st.query_params["screen"] = "scores"
+                st.session_state.screen = "scores"
                 st.rerun()
             else:
                 st.error("Codigo de grupo no encontrado.")
@@ -267,7 +272,7 @@ if _screen == "home":
                 tee_res = supabase.table("tees").select("*").eq("id", t["tee_id"]).execute()
                 st.session_state.tournament = {**t, "tee": tee_res.data[0]}
                 st.session_state.role = "spectator"
-                st.query_params["screen"] = "leaderboard"
+                st.session_state.screen = "leaderboard"
                 st.rerun()
         else:
             st.info("No hay torneos activos.")
@@ -384,7 +389,7 @@ elif _screen == "leader_setup":
             st.session_state.group = g_res.data[0]
             st.session_state.parejas = parejas_agrupadas
             st.session_state.strokes_map = build_strokes_map(parejas_agrupadas, holes)
-            st.query_params["screen"] = "scores"
+            st.session_state.screen = "scores"
             st.success("Grupo creado")
             st.info(f"Codigo de grupo: {group_code} - Guardalo para poder volver a entrar.")
             time.sleep(2)
@@ -412,7 +417,7 @@ elif _screen == "scores":
             st.rerun()
     with col_lb:
         if st.button("Ver Leaderboard"):
-            st.query_params["screen"] = "leaderboard"
+            st.session_state.screen = "leaderboard"
             st.rerun()
 
     st.markdown("---")
