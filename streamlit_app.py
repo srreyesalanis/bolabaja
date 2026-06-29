@@ -435,30 +435,27 @@ elif st.session_state.screen == "scores":
     # Hoyos con scores guardados (al menos una entrada)
     hoyos_con_scores = set(s["hole_number"] for s in existing_scores)
 
-    # Selector de hoyo como cuadricula clickeable
+    # Selector de hoyo - 2 filas de 9
     st.markdown("**Selecciona hoyo:**")
     st.markdown("""
     <style>
-    div[data-testid="column"] > div > div > div > button {
-        width: 100% !important;
-        padding: 8px 0 !important;
-        font-size: 15px !important;
-        font-weight: bold !important;
-    }
+    [data-testid="column"] { min-width: 0 !important; padding: 2px !important; }
+    [data-testid="column"] button { padding: 4px 0 !important; font-size: 13px !important; min-height: 36px !important; }
     </style>
     """, unsafe_allow_html=True)
 
-    filas = [list(range(1, 7)), list(range(7, 13)), list(range(13, 19))]
+    if "hole_num" not in st.session_state:
+        st.session_state.hole_num = 1
+
+    filas = [list(range(1, 10)), list(range(10, 19))]
     for fila in filas:
-        cols_h = st.columns(6)
+        cols_h = st.columns(9)
         for idx, h in enumerate(fila):
             tiene = h in hoyos_con_scores
             emoji = "🟢" if tiene else "⚫"
             if cols_h[idx].button(f"{emoji}{h}", key=f"hole_btn_{h}", use_container_width=True):
                 st.session_state.hole_num = h
 
-    if "hole_num" not in st.session_state:
-        st.session_state.hole_num = 1
     hole_num = st.session_state.hole_num
     st.caption(f"Hoyo seleccionado: **{hole_num}**")
 
