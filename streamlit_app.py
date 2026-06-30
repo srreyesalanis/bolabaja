@@ -267,7 +267,8 @@ if _screen == "home":
         group_code = st.text_input("Codigo de grupo (ej. GR-1234)", key="group_code_input")
         if st.button("Continuar mi grupo", type="primary"):
             g = get_group_by_code(group_code)
-            if g:\n                t_res = supabase.table("tournaments").select("*").eq("id", g["tournament_id"]).execute()
+            if g:
+                t_res = supabase.table("tournaments").select("*").eq("id", g["tournament_id"]).execute()
                 t = t_res.data[0]
                 tee_res = supabase.table("tees").select("*").eq("id", t["tee_id"]).execute()
                 holes = get_holes()
@@ -634,4 +635,6 @@ elif _screen == "leaderboard":
         st.rerun()
 
     st.stop()
+
+
 
