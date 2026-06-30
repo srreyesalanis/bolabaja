@@ -581,6 +581,8 @@ elif _screen == "leaderboard":
     tee = t["tee"]
     holes = get_holes()
 
+    EMOJI_GOLD = "\U0001F947"
+    EMOJI_GOLF = "\U0001F3CC\uFE0F"
     st.title(f"Leaderboard - {t['name']}")
     st.caption(f"Tee: {tee['color']} | Rating: {tee['rating']} | Slope: {tee['slope']}")
 
@@ -657,13 +659,13 @@ elif _screen == "leaderboard":
 
     if con_datos:
         lider_total = min(con_datos, key=lambda x: x["_sort"])
-        st.success(f"{chr(0x1F947)} Total: **{lider_total['Pareja']}** ({lider_total['Jugadores']}) - {lider_total['Total']} | {lider_total['Grupo']}")
+        st.success(f"{EMOJI_GOLD} Total: **{lider_total['Pareja']}** ({lider_total['Jugadores']}) - {lider_total['Total']} | {lider_total['Grupo']}")
     if con_front:
         lider_front = min(con_front, key=lambda x: x["_front"])
-        st.info(f"{chr(0x1F3CC)} Front: **{lider_front['Pareja']}** ({lider_front['Jugadores']}) - {lider_front['Front (1-9)']} | {lider_front['Grupo']}")
+        st.info(f"{EMOJI_GOLF} Front: **{lider_front['Pareja']}** ({lider_front['Jugadores']}) - {lider_front['Front (1-9)']} | {lider_front['Grupo']}")
     if con_back:
         lider_back = min(con_back, key=lambda x: x["_back"])
-        st.info(f"{chr(0x1F3CC)} Back: **{lider_back['Pareja']}** ({lider_back['Jugadores']}) - {lider_back['Back (10-18)']} | {lider_back['Grupo']}")
+        st.info(f"{EMOJI_GOLF} Back: **{lider_back['Pareja']}** ({lider_back['Jugadores']}) - {lider_back['Back (10-18)']} | {lider_back['Grupo']}")
 
     for r in leader_data:
         del r["_sort"]
@@ -675,10 +677,11 @@ elif _screen == "leaderboard":
         use_container_width=True, hide_index=True
     )
 
-    if st.button("u{1F3CC}”„ Actualizar"):
+    if st.button("Actualizar"):
         st.rerun()
 
     st.stop()
+
 
 
 
