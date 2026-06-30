@@ -24,6 +24,9 @@ def get_holes():
 def gen_code(prefix="LC"):
     return f"{prefix}-" + "".join(random.choices(string.digits, k=4))
 
+def gen_group_code():
+    return "".join(random.choices(string.digits, k=6))
+
 def strokes_given(player_ch, holes):
     result = {}
     for h in holes:
@@ -42,7 +45,7 @@ def get_tournament_by_code(code):
     return res.data[0] if res.data else None
 
 def get_group_by_code(code):
-    res = supabase.table("groups").select("*").eq("access_code", code.upper()).execute()
+    res = supabase.table("groups").select("*").eq("access_code", code.strip()).execute()
     return res.data[0] if res.data else None
 
 def get_groups_for_tournament(tournament_id):
@@ -264,7 +267,7 @@ if _screen == "home":
         st.markdown("---")
         st.subheader("Lider de Grupo")
         st.caption("Ya tienes un codigo de grupo?")
-        group_code = st.text_input("Codigo de grupo (ej. GR-1234)", key="group_code_input")
+        group_code = st.text_input("Codigo de grupo", key="group_code_input", placeholder="")
         if st.button("Continuar mi grupo", type="primary"):
             g = get_group_by_code(group_code)
             if g:
@@ -365,7 +368,7 @@ elif _screen == "leader_setup":
             st.error("Completa todos los jugadores antes de continuar.")
         else:
             holes = get_holes()
-            group_code = gen_code("GR")
+            group_code = gen_group_code()
             g_res = supabase.table("groups").insert({
                 "tournament_id": t["id"],
                 "name": group_name,
@@ -635,6 +638,7 @@ elif _screen == "leaderboard":
         st.rerun()
 
     st.stop()
+
 
 
 
