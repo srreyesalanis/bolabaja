@@ -592,7 +592,7 @@ elif _screen == "leaderboard":
             go_home()
             st.rerun()
     with col_refresh:
-        if st.button("Actualizar"):
+        if st.button("Actualizar", key="refresh_leaderboard"):
             st.rerun()
 
     st.markdown("---")
@@ -677,7 +677,7 @@ elif _screen == "leaderboard":
         use_container_width=True, hide_index=True
     )
 
-    if st.button("Actualizar"):
+    if st.button("Actualizar", key="refresh_scores"):
         st.rerun()
 
     st.stop()
