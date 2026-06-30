@@ -242,7 +242,6 @@ if _screen == "home":
                         supabase.table("group_players").delete().eq("group_id", g["id"]).execute()
                     supabase.table("tournament_scores").delete().eq("tournament_id", t_del["id"]).execute()
                     supabase.table("groups").delete().eq("tournament_id", t_del["id"]).execute()
-                    supabase.table("tournament_pairs").delete().eq("tournament_id", t_del["id"]).execute()
                     supabase.table("guests").delete().eq("tournament_date", t_del["date"]).execute()
                     supabase.table("tournaments").delete().eq("id", t_del["id"]).execute()
                     st.success(f"Torneo {t_del['name']} borrado.")
