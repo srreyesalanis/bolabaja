@@ -736,10 +736,13 @@ elif _screen == "leaderboard":
         del r["_front"]
         del r["_back"]
 
-    st.dataframe(
-        pd.DataFrame(leader_data)[["Ranking", "Grupo", "Pareja", "Jugadores", "Front (1-9)", "Back (10-18)", "Total", "Hoyos", "Hoyos Ranking"]],
-        use_container_width=True, hide_index=True
-    )
+    if not leader_data:
+        st.info("No hay grupos con informacion aun.")
+    else:
+        st.dataframe(
+            pd.DataFrame(leader_data)[["Ranking", "Grupo", "Pareja", "Jugadores", "Front (1-9)", "Back (10-18)", "Total", "Hoyos", "Hoyos Ranking"]],
+            use_container_width=True, hide_index=True
+        )
 
     if st.button("Actualizar", key="refresh_scores"):
         st.rerun()
