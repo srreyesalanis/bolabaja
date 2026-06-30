@@ -127,6 +127,7 @@ for key, default in [
     ("admin_authed", False),
     ("show_admin_login", False),
     ("hole_num", 1),
+    ("admin_new_tournament_code", ""),
 ]:
     if key not in st.session_state:
         st.session_state[key] = default
@@ -206,6 +207,25 @@ if _screen == "home":
                     }).execute()
                     st.success("Torneo creado")
                     st.info(f"Codigo maestro: {code}")
+                    st.session_state["admin_new_tournament_code"] = code
+            # --- Lider de Grupo (post-login y post-creacion de torneo) ---
+            st.markdown("---")
+            st.markdown("**Entrar como Lider de Grupo**")
+            admin_master_code = st.text_input(
+                "Codigo maestro del torneo",
+                value=st.session_state.get("admin_new_tournament_code", ""),
+                key="admin_master_code"
+            )
+            if st.button("Entrar como Lider", key="admin_enter_leader", type="primary"):
+                t_found = get_tournament_by_code(admin_master_code)
+                if t_found:
+                    tee_res = supabase.table("tees").select("*").eq("id", t_found["tee_id"]).execute()
+                    st.session_state.tournament = {**t_found, "tee": tee_res.data[0]}
+                    st.session_state.role = "leader"
+                    st.session_state.screen = "leader_setup"
+                    st.rerun()
+                else:
+                    st.error("Codigo no encontrado.")
             st.markdown("---")
             st.markdown("**Borrar torneo**")
             torneos_admin = get_active_tournaments()
