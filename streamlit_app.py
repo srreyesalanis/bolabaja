@@ -432,9 +432,9 @@ elif _screen == "leader_setup":
             st.session_state.group = g_res.data[0]
             st.session_state.parejas = parejas_agrupadas
             st.session_state.strokes_map = build_strokes_map(parejas_agrupadas, holes)
-            st.session_state.screen = "scores"
-            st.success("Grupo creado")
-            st.info(f"Codigo de grupo: {group_code} - Guardalo para poder volver a entrar.")
+            st.success(f"Grupo creado! Codigo: {group_code}")
+            st.session_state.screen = "home"
+            st.rerun()
             time.sleep(2)
             st.rerun()
 
@@ -475,7 +475,7 @@ elif _screen == "scores":
     hole_options = {}
     for h in range(1, 19):
         tiene = h in hoyos_con_scores
-        hole_options[f"{'âœ…' if tiene else 'â¬œ'} Hoyo {h}"] = h
+        hole_options[f"{"v" if tiene else "-"} Hoyo {h}"] = h
 
     current_label = next(k for k, v in hole_options.items() if v == st.session_state.hole_num)
     sel_label = st.selectbox("Selecciona hoyo", list(hole_options.keys()),
@@ -671,6 +671,8 @@ elif _screen == "leaderboard":
         st.rerun()
 
     st.stop()
+
+
 
 
 
