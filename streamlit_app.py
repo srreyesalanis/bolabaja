@@ -158,6 +158,14 @@ elif st.session_state._last_screen != _screen:
 
 if _screen == "home":
     st.title("Bola Baja por Parejas - Las Cruces")
+    st.markdown("""
+    <style>
+    [data-testid="stVerticalBlockBorderWrapper"]:nth-of-type(4n+1) { background-color: rgba(30, 80, 60, 0.15) !important; }
+    [data-testid="stVerticalBlockBorderWrapper"]:nth-of-type(4n+2) { background-color: rgba(20, 60, 100, 0.15) !important; }
+    [data-testid="stVerticalBlockBorderWrapper"]:nth-of-type(4n+3) { background-color: rgba(80, 40, 80, 0.12) !important; }
+    [data-testid="stVerticalBlockBorderWrapper"]:nth-of-type(4n+0) { background-color: rgba(100, 60, 20, 0.12) !important; }
+    </style>
+    """, unsafe_allow_html=True)
     st.markdown("---")
     col_org, col_spec = st.columns(2)
 
@@ -284,64 +292,45 @@ if _screen == "home":
 
     with col_spec:
         st.subheader("Espectador")
-        torneos = get_active_tournaments()
-        if torneos:
-            t_opts = {t["name"]: t for t in torneos}
-            sel = st.selectbox("Torneo", list(t_opts.keys()), key="spec_sel")
-            if st.button("Ver Leaderboard", type="primary"):
-                t = t_opts[sel]
-                tee_res = supabase.table("tees").select("*").eq("id", t["tee_id"]).execute()
-                st.session_state.tournament = {**t, "tee": tee_res.data[0]}
-                st.session_state.role = "spectator"
-                st.session_state.screen = "leaderboard"
-                st.rerun()
-        else:
-            st.info("No hay torneos activos.")
-
-            # --- Borrar torneo ---
-            st.markdown("---")
-            st.markdown("**Borrar torneo**")
-            torneos_admin = get_active_tournaments()
-            if torneos_admin:
-                del_opts = {f"{t['name']} ({t['access_code']})": t for t in torneos_admin}
-                del_sel = st.selectbox("Torneo a borrar", list(del_opts.keys()), key="del_sel")
-                if st.button("Borrar torneo", type="secondary"):
-                    t_del = del_opts[del_sel]
-                    grupos = supabase.table("groups").select("id").eq("tournament_id", t_del["id"]).execute().data
-                    for g in grupos:
-                        supabase.table("group_players").delete().eq("group_id", g["id"]).execute()
-                    supabase.table("tournament_scores").delete().eq("tournament_id", t_del["id"]).execute()
-                    supabase.table("groups").delete().eq("tournament_id", t_del["id"]).execute()
-                    supabase.table("guests").delete().eq("tournament_date", t_del["date"]).execute()
-                    supabase.table("tournaments").delete().eq("id", t_del["id"]).execute()
-                    st.success(f"Torneo {t_del['name']} borrado.")
+        with st.container(border=True):
+            st.markdown("**Ver Leaderboard**")
+            torneos = get_active_tournaments()
+            if torneos:
+                t_opts = {t["name"]: t for t in torneos}
+                sel = st.selectbox("Torneo", list(t_opts.keys()), key="spec_sel")
+                if st.button("Ver Leaderboard", type="primary"):
+                    t = t_opts[sel]
+                    tee_res = supabase.table("tees").select("*").eq("id", t["tee_id"]).execute()
+                    st.session_state.tournament = {**t, "tee": tee_res.data[0]}
+                    st.session_state.role = "spectator"
+                    st.session_state.screen = "leaderboard"
                     st.rerun()
             else:
-                st.info("No hay torneos para borrar.")
-        st.markdown("---")
-        st.subheader("Lider de Grupo")
-        st.caption("Ya tienes un codigo de grupo?")
-        group_code = st.text_input("Codigo de grupo", key="group_code_input", placeholder="")
-        if st.button("Continuar mi grupo", type="primary"):
-            g = get_group_by_code(group_code)
-            if g:
-                t_res = supabase.table("tournaments").select("*").eq("id", g["tournament_id"]).execute()
-                t = t_res.data[0]
-                tee_res = supabase.table("tees").select("*").eq("id", t["tee_id"]).execute()
-                holes = get_holes()
-                rows = get_group_players(g["id"])
-                parejas_agrupadas = agrupar_parejas(rows)
-                st.session_state.tournament = {**t, "tee": tee_res.data[0]}
-                st.session_state.group = g
-                st.session_state.parejas = parejas_agrupadas
-                st.session_state.strokes_map = build_strokes_map(parejas_agrupadas, holes)
-                st.session_state.role = "leader"
-                st.session_state.screen = "scores"
-                st.rerun()
-            else:
-                st.error("Codigo de grupo no encontrado.")
+                st.info("No hay torneos activos.")
 
-    st.stop()
+        st.subheader("Lider de Grupo")
+        with st.container(border=True):
+            st.markdown("**Continuar mi grupo**")
+            st.caption("Ya tienes un codigo de grupo?")
+            group_code = st.text_input("Codigo de grupo", key="group_code_input", placeholder="")
+            if st.button("Continuar mi grupo", type="primary"):
+                g = get_group_by_code(group_code)
+                if g:
+                    t_res = supabase.table("tournaments").select("*").eq("id", g["tournament_id"]).execute()
+                    t = t_res.data[0]
+                    tee_res = supabase.table("tees").select("*").eq("id", t["tee_id"]).execute()
+                    holes = get_holes()
+                    rows = get_group_players(g["id"])
+                    parejas_agrupadas = agrupar_parejas(rows)
+                    st.session_state.tournament = {**t, "tee": tee_res.data[0]}
+                    st.session_state.group = g
+                    st.session_state.parejas = parejas_agrupadas
+                    st.session_state.strokes_map = build_strokes_map(parejas_agrupadas, holes)
+                    st.session_state.role = "leader"
+                    st.session_state.screen = "scores"
+                    st.rerun()
+                else:
+                    st.error("Codigo de grupo no encontrado.")
 
 # ==============================================================================
 # PANTALLA LEADER SETUP
