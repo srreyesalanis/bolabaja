@@ -105,8 +105,8 @@ def agrupar_parejas(rows):
         grupos[pn].sort(key=lambda x: x.get("pair_order", 0))
     return grupos
 
-def save_guest(name, hi, fecha, player_id=None):
-    data = {"name": name, "handicap_index": float(hi or 0), "tournament_date": str(fecha)}
+def save_guest(name, hi, fecha, tournament_id, player_id=None):
+    data = {"name": name, "handicap_index": float(hi or 0), "tournament_date": str(fecha), "tournament_id": tournament_id}
     if player_id:
         data["player_id"] = player_id
     res = supabase.table("guests").insert(data).execute()
@@ -282,8 +282,8 @@ if _screen == "home":
                             supabase.table("group_players").delete().eq("group_id", g["id"]).execute()
                         supabase.table("tournament_scores").delete().eq("tournament_id", t_del["id"]).execute()
                         supabase.table("groups").delete().eq("tournament_id", t_del["id"]).execute()
-                        # Cleanup: borrar guests huerfanos con tournament_date del torneo borrado
-                        supabase.table("guests").delete().eq("tournament_date", t_del["date"]).execute()
+                        # Cleanup: borrar guests huerfanos por tournament_id
+                        supabase.table("guests").delete().eq("tournament_id", t_del["id"]).execute()
                         supabase.table("tournaments").delete().eq("id", t_del["id"]).execute()
                         st.success(f"Torneo {t_del['name']} borrado.")
                         st.rerun()
@@ -424,9 +424,9 @@ elif _screen == "leader_setup":
                     j = p[jkey]
                     guest_db_id = None
                     if j.get("_is_guest"):
-                        guest_db_id = save_guest(j["name"], j["current_handicap"], t["date"])
+                        guest_db_id = save_guest(j["name"], j["current_handicap"], t["date"], t["id"])
                     elif j.get("_hi_temporal"):
-                        guest_db_id = save_guest(j["name"], j["current_handicap"], t["date"], player_id=j["id"])
+                        guest_db_id = save_guest(j["name"], j["current_handicap"], t["date"], t["id"], player_id=j["id"])
                     ch = p["player1_ch"] if jkey == "j1" else p["player2_ch"]
                     row = supabase.table("group_players").insert({
                         "group_id": group_id,
