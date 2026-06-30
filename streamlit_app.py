@@ -247,6 +247,41 @@ if _screen == "home":
             else:
                 st.info("No hay torneos para borrar.")
 
+            # --- Gestión de Grupos ---
+            st.markdown("---")
+            st.markdown("**Grupos del torneo**")
+            torneos_grupos = get_active_tournaments()
+            if torneos_grupos:
+                grupos_t_opts = {t["name"]: t for t in torneos_grupos}
+                grupos_t_sel = st.selectbox("Torneo", list(grupos_t_opts.keys()), key="grupos_t_sel")
+                t_sel = grupos_t_opts[grupos_t_sel]
+                grupos_lista = supabase.table("groups").select("*").eq("tournament_id", t_sel["id"]).execute().data
+                if not grupos_lista:
+                    st.info("No hay grupos creados para este torneo.")
+                else:
+                    for g in grupos_lista:
+                        players_g = supabase.table("group_players").select("*").eq("group_id", g["id"]).order("pair_order").execute().data
+                        participantes = ", ".join([p["player_name"] for p in players_g]) if players_g else "Sin jugadores"
+                        with st.expander(f"🏌️ {g['name']} — Codigo: {g['access_code']}"):
+                            st.caption(f"Participantes: {participantes}")
+                            # Editar nombre del grupo
+                            nuevo_nombre = st.text_input("Nombre del grupo", value=g["name"], key=f"edit_name_{g['id']}")
+                            col_save, col_del = st.columns(2)
+                            with col_save:
+                                if st.button("Guardar nombre", key=f"save_{g['id']}"):
+                                    supabase.table("groups").update({"name": nuevo_nombre}).eq("id", g["id"]).execute()
+                                    st.success("Nombre actualizado.")
+                                    st.rerun()
+                            with col_del:
+                                if st.button("🗑️ Borrar grupo", key=f"del_g_{g['id']}", type="secondary"):
+                                    supabase.table("group_players").delete().eq("group_id", g["id"]).execute()
+                                    supabase.table("tournament_scores").delete().eq("group_id", g["id"]).execute()
+                                    supabase.table("groups").delete().eq("id", g["id"]).execute()
+                                    st.success(f"Grupo {g['name']} borrado.")
+                                    st.rerun()
+            else:
+                st.info("No hay torneos activos.")
+
     with col_spec:
         st.subheader("Espectador")
         torneos = get_active_tournaments()
