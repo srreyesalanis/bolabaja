@@ -571,16 +571,16 @@ elif _screen == "scores":
     gb_pos = 1
     for i, r in enumerate(group_board):
         if i > 0 and r["_sort"] != 9999 and group_board[i-1]["_sort"] == r["_sort"]:
-            r["Pos"] = group_board[i-1]["Pos"]
+            r["Ranking"] = group_board[i-1]["Ranking"]
         elif r["_sort"] == 9999:
-            r["Pos"] = "-"
+            r["Ranking"] = "-"
         else:
-            r["Pos"] = gb_pos
+            r["Ranking"] = gb_pos
         if r["_sort"] != 9999:
             gb_pos += 1
     for r in group_board:
         del r["_sort"]
-    st.dataframe(pd.DataFrame(group_board)[["Pos", "Pareja", "Jugadores", "Front (1-9)", "Back (10-18)", "Total", "Hoyos"]], use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(group_board)[["Ranking", "Pareja", "Jugadores", "Front (1-9)", "Back (10-18)", "Total", "Hoyos"]], use_container_width=True, hide_index=True)
 
     st.stop()
 
@@ -638,7 +638,7 @@ elif _screen == "leaderboard":
             par_back = sum(h["par"] for h in holes if h["hole_number"] in back_hoyos)
             par_total = par_front + par_back
             leader_data.append({
-                "Pos": 0,
+                "Ranking": 0,
                 "Grupo": grp["name"],
                 "Pareja": pair_name,
                 "Jugadores": f"{j1['player_name']} / {j2['player_name']}",
@@ -656,11 +656,11 @@ elif _screen == "leaderboard":
     pos = 1
     for i, r in enumerate(leader_data):
         if i > 0 and r["_sort"] != 9999 and leader_data[i-1]["_sort"] == r["_sort"]:
-            r["Pos"] = leader_data[i-1]["Pos"]
+            r["Ranking"] = leader_data[i-1]["Ranking"]
         elif r["_sort"] == 9999:
-            r["Pos"] = "-"
+            r["Ranking"] = "-"
         else:
-            r["Pos"] = pos
+            r["Ranking"] = pos
         if r["_sort"] != 9999:
             pos += 1
     con_datos = [r for r in leader_data if r["_sort"] != 9999]
@@ -668,14 +668,26 @@ elif _screen == "leaderboard":
     con_back  = [r for r in leader_data if r["_back"] != 9999]
 
     if con_datos:
-        lider_total = min(con_datos, key=lambda x: x["_sort"])
-        st.success(f"{EMOJI_GOLD} Total: **{lider_total['Pareja']}** ({lider_total['Jugadores']}) - {lider_total['Total']} | {lider_total['Grupo']}")
+        best_total = min(r["_sort"] for r in con_datos)
+        lideres_total = [r for r in con_datos if r["_sort"] == best_total]
+        names_total = " | ".join([f"**{r['Pareja']}** ({r['Jugadores']}) [{r['Grupo']}]" for r in lideres_total])
+        score_total = lideres_total[0]["Total"]
+        prefix_total = "EMPATE " if len(lideres_total) > 1 else ""
+        st.success(f"{EMOJI_GOLD} {prefix_total}Total: {names_total} - {score_total}")
     if con_front:
-        lider_front = min(con_front, key=lambda x: x["_front"])
-        st.info(f"{EMOJI_GOLF} Front: **{lider_front['Pareja']}** ({lider_front['Jugadores']}) - {lider_front['Front (1-9)']} | {lider_front['Grupo']}")
+        best_front = min(r["_front"] for r in con_front)
+        lideres_front = [r for r in con_front if r["_front"] == best_front]
+        names_front = " | ".join([f"**{r['Pareja']}** ({r['Jugadores']}) [{r['Grupo']}]" for r in lideres_front])
+        score_front = lideres_front[0]["Front (1-9)"]
+        prefix_front = "EMPATE " if len(lideres_front) > 1 else ""
+        st.info(f"{EMOJI_GOLF} {prefix_front}Front: {names_front} - {score_front}")
     if con_back:
-        lider_back = min(con_back, key=lambda x: x["_back"])
-        st.info(f"{EMOJI_GOLF} Back: **{lider_back['Pareja']}** ({lider_back['Jugadores']}) - {lider_back['Back (10-18)']} | {lider_back['Grupo']}")
+        best_back = min(r["_back"] for r in con_back)
+        lideres_back = [r for r in con_back if r["_back"] == best_back]
+        names_back = " | ".join([f"**{r['Pareja']}** ({r['Jugadores']}) [{r['Grupo']}]" for r in lideres_back])
+        score_back = lideres_back[0]["Back (10-18)"]
+        prefix_back = "EMPATE " if len(lideres_back) > 1 else ""
+        st.info(f"{EMOJI_GOLF} {prefix_back}Back: {names_back} - {score_back}")
 
     for r in leader_data:
         del r["_sort"]
@@ -683,7 +695,7 @@ elif _screen == "leaderboard":
         del r["_back"]
 
     st.dataframe(
-        pd.DataFrame(leader_data)[["Pos", "Grupo", "Pareja", "Jugadores", "Front (1-9)", "Back (10-18)", "Total", "Hoyos"]],
+        pd.DataFrame(leader_data)[["Ranking", "Grupo", "Pareja", "Jugadores", "Front (1-9)", "Back (10-18)", "Total", "Hoyos"]],
         use_container_width=True, hide_index=True
     )
 
@@ -691,6 +703,7 @@ elif _screen == "leaderboard":
         st.rerun()
 
     st.stop()
+
 
 
 
