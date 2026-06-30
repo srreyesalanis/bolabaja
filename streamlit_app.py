@@ -475,7 +475,7 @@ elif _screen == "scores":
     hole_options = {}
     for h in range(1, 19):
         tiene = h in hoyos_con_scores
-        hole_options[f"{"v" if tiene else "-"} Hoyo {h}"] = h
+        hole_options[f"{"\u2705" if tiene else "\u2b1c"} Hoyo {h}"] = h
 
     current_label = next(k for k, v in hole_options.items() if v == st.session_state.hole_num)
     sel_label = st.selectbox("Selecciona hoyo", list(hole_options.keys()),
@@ -671,6 +671,7 @@ elif _screen == "leaderboard":
         st.rerun()
 
     st.stop()
+
 
 
 
