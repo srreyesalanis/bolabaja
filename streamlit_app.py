@@ -156,7 +156,7 @@ elif st.session_state._last_screen != _screen:
 if _screen == "home":
     st.title("Bola Baja por Parejas - Las Cruces")
     st.markdown("---")
-    col_org, col_lider, col_spec = st.columns(3)
+    col_org, col_spec = st.columns(2)
 
     with col_org:
         st.subheader("Administrador")
@@ -245,41 +245,6 @@ if _screen == "home":
                     st.rerun()
             else:
                 st.info("No hay torneos para borrar.")
-
-    with col_lider:
-        st.subheader("Lider de Grupo")
-        master_code = st.text_input("Codigo maestro (ej. LC-1234)", key="master_code")
-        if st.button("Entrar como Lider", type="primary"):
-            t = get_tournament_by_code(master_code)
-            if t:
-                tee_res = supabase.table("tees").select("*").eq("id", t["tee_id"]).execute()
-                st.session_state.tournament = {**t, "tee": tee_res.data[0]}
-                st.session_state.role = "leader"
-                st.session_state.screen = "leader_setup"
-                st.rerun()
-            else:
-                st.error("Codigo no encontrado.")
-        st.markdown("---")
-        st.caption("Ya tienes un grupo creado?")
-        group_code = st.text_input("Codigo de grupo (ej. GR-1234)", key="group_code_input")
-        if st.button("Continuar mi grupo"):
-            g = get_group_by_code(group_code)
-            if g:
-                t_res = supabase.table("tournaments").select("*").eq("id", g["tournament_id"]).execute()
-                t = t_res.data[0]
-                tee_res = supabase.table("tees").select("*").eq("id", t["tee_id"]).execute()
-                holes = get_holes()
-                rows = get_group_players(g["id"])
-                parejas_agrupadas = agrupar_parejas(rows)
-                st.session_state.tournament = {**t, "tee": tee_res.data[0]}
-                st.session_state.group = g
-                st.session_state.parejas = parejas_agrupadas
-                st.session_state.strokes_map = build_strokes_map(parejas_agrupadas, holes)
-                st.session_state.role = "leader"
-                st.session_state.screen = "scores"
-                st.rerun()
-            else:
-                st.error("Codigo de grupo no encontrado.")
 
     with col_spec:
         st.subheader("Espectador")
@@ -452,7 +417,7 @@ elif _screen == "scores":
     hole_options = {}
     for h in range(1, 19):
         tiene = h in hoyos_con_scores
-        hole_options[f"{'✅' if tiene else '⬜'} Hoyo {h}"] = h
+        hole_options[f"{'âœ…' if tiene else 'â¬œ'} Hoyo {h}"] = h
 
     current_label = next(k for k, v in hole_options.items() if v == st.session_state.hole_num)
     sel_label = st.selectbox("Selecciona hoyo", list(hole_options.keys()),
@@ -482,11 +447,11 @@ elif _screen == "scores":
             saved1 = (pair_name, hole_num, pid1, gid1) in existing_map
             saved2 = (pair_name, hole_num, pid2, gid2) in existing_map
 
-            st.caption(f"{j1['player_name']} | +{sg1} ventaja{'  ✅' if saved1 else ''}")
+            st.caption(f"{j1['player_name']} | +{sg1} ventaja{'  âœ…' if saved1 else ''}")
             g1_val = st.number_input(f"Golpes {j1['player_name']}", min_value=1, max_value=15,
                 value=prev1, key=f"g1_{pair_name}_{hole_num}")
 
-            st.caption(f"{j2['player_name']} | +{sg2} ventaja{'  ✅' if saved2 else ''}")
+            st.caption(f"{j2['player_name']} | +{sg2} ventaja{'  âœ…' if saved2 else ''}")
             g2_val = st.number_input(f"Golpes {j2['player_name']}", min_value=1, max_value=15,
                 value=prev2, key=f"g2_{pair_name}_{hole_num}")
 
@@ -626,13 +591,13 @@ elif _screen == "leaderboard":
 
     if con_datos:
         lider_total = min(con_datos, key=lambda x: x["_sort"])
-        st.success(f"🥇 Total: **{lider_total['Pareja']}** ({lider_total['Jugadores']}) - {lider_total['Total']} | {lider_total['Grupo']}")
+        st.success(f"ðŸ¥‡ Total: **{lider_total['Pareja']}** ({lider_total['Jugadores']}) - {lider_total['Total']} | {lider_total['Grupo']}")
     if con_front:
         lider_front = min(con_front, key=lambda x: x["_front"])
-        st.info(f"🏁 Front: **{lider_front['Pareja']}** ({lider_front['Jugadores']}) - {lider_front['Front (1-9)']} | {lider_front['Grupo']}")
+        st.info(f"ðŸ Front: **{lider_front['Pareja']}** ({lider_front['Jugadores']}) - {lider_front['Front (1-9)']} | {lider_front['Grupo']}")
     if con_back:
         lider_back = min(con_back, key=lambda x: x["_back"])
-        st.info(f"🏁 Back: **{lider_back['Pareja']}** ({lider_back['Jugadores']}) - {lider_back['Back (10-18)']} | {lider_back['Grupo']}")
+        st.info(f"ðŸ Back: **{lider_back['Pareja']}** ({lider_back['Jugadores']}) - {lider_back['Back (10-18)']} | {lider_back['Grupo']}")
 
     for r in leader_data:
         del r["_sort"]
@@ -644,7 +609,8 @@ elif _screen == "leaderboard":
         use_container_width=True, hide_index=True
     )
 
-    if st.button("🔄 Actualizar"):
+    if st.button("ðŸ”„ Actualizar"):
         st.rerun()
 
     st.stop()
+
