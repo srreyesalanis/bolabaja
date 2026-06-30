@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 import pandas as pd
 from supabase import create_client, Client
 from datetime import date
@@ -261,6 +261,27 @@ if _screen == "home":
                 st.rerun()
         else:
             st.info("No hay torneos activos.")
+        st.markdown("---")
+        st.subheader("Lider de Grupo")
+        st.caption("Ya tienes un codigo de grupo?")
+        group_code = st.text_input("Codigo de grupo (ej. GR-1234)", key="group_code_input")
+        if st.button("Continuar mi grupo", type="primary"):
+            g = get_group_by_code(group_code)
+            if g:\n                t_res = supabase.table("tournaments").select("*").eq("id", g["tournament_id"]).execute()
+                t = t_res.data[0]
+                tee_res = supabase.table("tees").select("*").eq("id", t["tee_id"]).execute()
+                holes = get_holes()
+                rows = get_group_players(g["id"])
+                parejas_agrupadas = agrupar_parejas(rows)
+                st.session_state.tournament = {**t, "tee": tee_res.data[0]}
+                st.session_state.group = g
+                st.session_state.parejas = parejas_agrupadas
+                st.session_state.strokes_map = build_strokes_map(parejas_agrupadas, holes)
+                st.session_state.role = "leader"
+                st.session_state.screen = "scores"
+                st.rerun()
+            else:
+                st.error("Codigo de grupo no encontrado.")
 
     st.stop()
 
