@@ -640,22 +640,30 @@ elif _screen == "leaderboard":
             })
 
     leader_data.sort(key=lambda x: x["_sort"])
+    # Asignar posiciones con empate
+    pos = 1
     for i, r in enumerate(leader_data):
-        r["Pos"] = i + 1
-
+        if i > 0 and r["_sort"] != 9999 and leader_data[i-1]["_sort"] == r["_sort"]:
+            r["Pos"] = leader_data[i-1]["Pos"]
+        elif r["_sort"] == 9999:
+            r["Pos"] = "-"
+        else:
+            r["Pos"] = pos
+        if r["_sort"] != 9999:
+            pos += 1
     con_datos = [r for r in leader_data if r["_sort"] != 9999]
     con_front = [r for r in leader_data if r["_front"] != 9999]
     con_back  = [r for r in leader_data if r["_back"] != 9999]
 
     if con_datos:
         lider_total = min(con_datos, key=lambda x: x["_sort"])
-        st.success(f"\U0001F947 Total: **{lider_total['Pareja']}** ({lider_total['Jugadores']}) - {lider_total['Total']} | {lider_total['Grupo']}")
+        st.success(f"{chr(0x1F947)} Total: **{lider_total['Pareja']}** ({lider_total['Jugadores']}) - {lider_total['Total']} | {lider_total['Grupo']}")
     if con_front:
         lider_front = min(con_front, key=lambda x: x["_front"])
-        st.info(f"\U0001F3CC Front: **{lider_front['Pareja']}** ({lider_front['Jugadores']}) - {lider_front['Front (1-9)']} | {lider_front['Grupo']}")
+        st.info(f"{chr(0x1F3CC)} Front: **{lider_front['Pareja']}** ({lider_front['Jugadores']}) - {lider_front['Front (1-9)']} | {lider_front['Grupo']}")
     if con_back:
         lider_back = min(con_back, key=lambda x: x["_back"])
-        st.info(f"\U0001F3CC Back: **{lider_back['Pareja']}** ({lider_back['Jugadores']}) - {lider_back['Back (10-18)']} | {lider_back['Grupo']}")
+        st.info(f"{chr(0x1F3CC)} Back: **{lider_back['Pareja']}** ({lider_back['Jugadores']}) - {lider_back['Back (10-18)']} | {lider_back['Grupo']}")
 
     for r in leader_data:
         del r["_sort"]
