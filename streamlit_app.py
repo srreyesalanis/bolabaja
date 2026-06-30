@@ -568,9 +568,19 @@ elif _screen == "scores":
         })
 
     group_board.sort(key=lambda x: x["_sort"])
+    gb_pos = 1
+    for i, r in enumerate(group_board):
+        if i > 0 and r["_sort"] != 9999 and group_board[i-1]["_sort"] == r["_sort"]:
+            r["Pos"] = group_board[i-1]["Pos"]
+        elif r["_sort"] == 9999:
+            r["Pos"] = "-"
+        else:
+            r["Pos"] = gb_pos
+        if r["_sort"] != 9999:
+            gb_pos += 1
     for r in group_board:
         del r["_sort"]
-    st.dataframe(pd.DataFrame(group_board), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(group_board)[["Pos", "Pareja", "Jugadores", "Front (1-9)", "Back (10-18)", "Total", "Hoyos"]], use_container_width=True, hide_index=True)
 
     st.stop()
 
