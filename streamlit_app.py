@@ -160,10 +160,12 @@ if _screen == "home":
     st.title("Bola Baja por Parejas - Las Cruces")
     st.markdown("""
     <style>
-    [data-testid="stVerticalBlockBorderWrapper"]:nth-of-type(4n+1) { background-color: rgba(30, 80, 60, 0.15) !important; }
-    [data-testid="stVerticalBlockBorderWrapper"]:nth-of-type(4n+2) { background-color: rgba(20, 60, 100, 0.15) !important; }
-    [data-testid="stVerticalBlockBorderWrapper"]:nth-of-type(4n+3) { background-color: rgba(80, 40, 80, 0.12) !important; }
-    [data-testid="stVerticalBlockBorderWrapper"]:nth-of-type(4n+0) { background-color: rgba(100, 60, 20, 0.12) !important; }
+    div[data-testid="stVerticalBlockBorderWrapper"]:nth-child(1) { background: linear-gradient(135deg, rgba(30,80,60,0.18), rgba(30,80,60,0.08)) !important; }
+    div[data-testid="stVerticalBlockBorderWrapper"]:nth-child(2) { background: linear-gradient(135deg, rgba(20,60,120,0.18), rgba(20,60,120,0.08)) !important; }
+    div[data-testid="stVerticalBlockBorderWrapper"]:nth-child(3) { background: linear-gradient(135deg, rgba(80,30,80,0.15), rgba(80,30,80,0.06)) !important; }
+    div[data-testid="stVerticalBlockBorderWrapper"]:nth-child(4) { background: linear-gradient(135deg, rgba(120,60,10,0.15), rgba(120,60,10,0.06)) !important; }
+    div[data-testid="stVerticalBlockBorderWrapper"]:nth-child(5) { background: linear-gradient(135deg, rgba(10,90,90,0.15), rgba(10,90,90,0.06)) !important; }
+    div[data-testid="stVerticalBlockBorderWrapper"]:nth-child(6) { background: linear-gradient(135deg, rgba(60,90,20,0.15), rgba(60,90,20,0.06)) !important; }
     </style>
     """, unsafe_allow_html=True)
     st.markdown("---")
@@ -204,11 +206,9 @@ if _screen == "home":
                     st.error("No se pudieron cargar los tees.")
                 else:
                     tee_opts = {f"{t['color']} - Rating {t['rating']} / Slope {t['slope']}": t for t in tees}
-                    with st.form("form_org"):
-                        fecha = st.date_input("Fecha", value=date.today())
-                        tee_label = st.selectbox("Tee", list(tee_opts.keys()))
-                        submitted = st.form_submit_button("Crear Torneo", type="primary")
-                    if submitted:
+                    fecha = st.date_input("Fecha", value=date.today(), key="admin_fecha")
+                    tee_label = st.selectbox("Tee", list(tee_opts.keys()), key="admin_tee")
+                    if st.button("Crear Torneo", type="primary", key="admin_crear_torneo"):
                         tee = tee_opts[tee_label]
                         code = gen_code("LC")
                         supabase.table("tournaments").insert({
