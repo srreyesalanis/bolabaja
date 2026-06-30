@@ -614,6 +614,25 @@ elif _screen == "leaderboard":
     for s in all_scores:
         hole_scores[(s["pair_name"], s["group_id"], s["hole_number"])].append(s["net_strokes"])
 
+    # Calcular hoyos jugados por cada pareja
+    pair_data = {}  # (pair_name, group_id) -> {hoyo: bola_baja}
+    for grp in groups:
+        rows = get_group_players(grp["id"])
+        parejas_grp = agrupar_parejas(rows)
+        for pair_name in parejas_grp:
+            key = (pair_name, grp["id"])
+            pair_data[key] = {}
+            for (pn, gid, hn), nets in hole_scores.items():
+                if pn == pair_name and gid == grp["id"] and len(nets) >= 2:
+                    pair_data[key][hn] = min(nets)
+
+    # Hoyos que TODAS las parejas han jugado (hoyos comunes)
+    if pair_data:
+        hoyos_por_pareja = [set(hoyos.keys()) for hoyos in pair_data.values()]
+        hoyos_comunes = hoyos_por_pareja[0].intersection(*hoyos_por_pareja[1:]) if len(hoyos_por_pareja) > 1 else hoyos_por_pareja[0]
+    else:
+        hoyos_comunes = set()
+
     leader_data = []
     for grp in groups:
         rows = get_group_players(grp["id"])
@@ -621,22 +640,35 @@ elif _screen == "leaderboard":
         for pair_name, jugadores in parejas_grp.items():
             j1 = jugadores[0]
             j2 = jugadores[1]
-            front_total, front_hoyos = 0, set()
-            back_total, back_hoyos = 0, set()
-            for (pn, gid, hn), nets in hole_scores.items():
-                if pn == pair_name and gid == grp["id"] and len(nets) >= 2:
-                    bola = min(nets)
-                    if hn <= 9:
-                        front_total += bola
-                        front_hoyos.add(hn)
-                    else:
-                        back_total += bola
-                        back_hoyos.add(hn)
+            key = (pair_name, grp["id"])
+            bolas = pair_data.get(key, {})
+
+            # Score en hoyos comunes (para ranking justo)
+            front_common = {hn: bolas[hn] for hn in hoyos_comunes if hn in bolas and hn <= 9}
+            back_common  = {hn: bolas[hn] for hn in hoyos_comunes if hn in bolas and hn > 9}
+            total_common = sum(front_common.values()) + sum(back_common.values())
+            par_common   = sum(h["par"] for h in holes if h["hole_number"] in hoyos_comunes)
+            sort_val     = (total_common - par_common) if hoyos_comunes else 9999
+
+            # Score real completo (para display)
+            front_hoyos = {hn for hn in bolas if hn <= 9}
+            back_hoyos  = {hn for hn in bolas if hn > 9}
             total_hoyos = front_hoyos | back_hoyos
-            total = front_total + back_total
-            par_front = sum(h["par"] for h in holes if h["hole_number"] in front_hoyos)
-            par_back = sum(h["par"] for h in holes if h["hole_number"] in back_hoyos)
-            par_total = par_front + par_back
+            front_total = sum(bolas[hn] for hn in front_hoyos)
+            back_total  = sum(bolas[hn] for hn in back_hoyos)
+            total       = front_total + back_total
+            par_front   = sum(h["par"] for h in holes if h["hole_number"] in front_hoyos)
+            par_back    = sum(h["par"] for h in holes if h["hole_number"] in back_hoyos)
+            par_total   = par_front + par_back
+
+            # Front/Back comunes para lideres de vuelta
+            front_common_set = {hn for hn in hoyos_comunes if hn <= 9}
+            back_common_set  = {hn for hn in hoyos_comunes if hn > 9}
+            front_common_score = sum(bolas.get(hn, 0) for hn in front_common_set)
+            back_common_score  = sum(bolas.get(hn, 0) for hn in back_common_set)
+            par_front_common   = sum(h["par"] for h in holes if h["hole_number"] in front_common_set)
+            par_back_common    = sum(h["par"] for h in holes if h["hole_number"] in back_common_set)
+
             leader_data.append({
                 "Ranking": 0,
                 "Grupo": grp["name"],
@@ -646,9 +678,10 @@ elif _screen == "leaderboard":
                 "Back (10-18)": fmt_score(back_total, par_back, back_hoyos),
                 "Total": fmt_score(total, par_total, total_hoyos),
                 "Hoyos": f"{len(total_hoyos)}/18",
-                "_sort": (total - par_total) if total_hoyos else 9999,
-                "_front": (front_total - par_front) if front_hoyos else 9999,
-                "_back": (back_total - par_back) if back_hoyos else 9999,
+                "Hoyos Ranking": f"{len(hoyos_comunes)} comunes",
+                "_sort":  sort_val,
+                "_front": (front_common_score - par_front_common) if front_common_set else 9999,
+                "_back":  (back_common_score  - par_back_common)  if back_common_set  else 9999,
             })
 
     leader_data.sort(key=lambda x: x["_sort"])
@@ -695,7 +728,7 @@ elif _screen == "leaderboard":
         del r["_back"]
 
     st.dataframe(
-        pd.DataFrame(leader_data)[["Ranking", "Grupo", "Pareja", "Jugadores", "Front (1-9)", "Back (10-18)", "Total", "Hoyos"]],
+        pd.DataFrame(leader_data)[["Ranking", "Grupo", "Pareja", "Jugadores", "Front (1-9)", "Back (10-18)", "Total", "Hoyos", "Hoyos Ranking"]],
         use_container_width=True, hide_index=True
     )
 
