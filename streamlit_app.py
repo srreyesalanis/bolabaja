@@ -164,7 +164,7 @@ if _screen == "home":
     with col_org:
         st.subheader("Administrador")
         if not st.session_state.admin_authed:
-            if st.button("Crear Torneo", type="primary"):
+            if st.button("Administrar Torneo", type="primary"):
                 st.session_state.show_admin_login = True
             if st.session_state.show_admin_login:
                 st.caption("Ingresa tus credenciales")
@@ -197,7 +197,7 @@ if _screen == "home":
                 with st.form("form_org"):
                     fecha = st.date_input("Fecha", value=date.today())
                     tee_label = st.selectbox("Tee", list(tee_opts.keys()))
-                    submitted = st.form_submit_button("Crear Torneo", type="primary")
+                    submitted = st.form_submit_button("Crear Torneo", type="primary")  # form interno
                 if submitted:
                     tee = tee_opts[tee_label]
                     code = gen_code("LC")
@@ -213,12 +213,12 @@ if _screen == "home":
                     st.session_state["admin_new_tournament_code"] = code
             # --- Lider de Grupo (post-login y post-creacion de torneo) ---
             st.markdown("---")
-            st.markdown("**Entrar como Lider de Grupo**")
+            st.markdown("**Crear Grupo**")
             torneos_lider = get_active_tournaments()
             if torneos_lider:
                 lider_opts = {t["name"]: t for t in torneos_lider}
                 lider_sel = st.selectbox("Selecciona torneo", list(lider_opts.keys()), key="lider_torneo_sel")
-                if st.button("Entrar como Lider", key="admin_enter_leader", type="primary"):
+                if st.button("Crear Grupo", key="admin_enter_leader", type="primary"):
                     t_found = lider_opts[lider_sel]
                     tee_res = supabase.table("tees").select("*").eq("id", t_found["tee_id"]).execute()
                     st.session_state.tournament = {**t_found, "tee": tee_res.data[0]}
@@ -227,25 +227,6 @@ if _screen == "home":
                     st.rerun()
             else:
                 st.info("No hay torneos activos.")
-            st.markdown("---")
-            st.markdown("**Borrar torneo**")
-            torneos_admin = get_active_tournaments()
-            if torneos_admin:
-                del_opts = {f"{t['name']} ({t['access_code']})": t for t in torneos_admin}
-                del_sel = st.selectbox("Torneo a borrar", list(del_opts.keys()), key="del_sel")
-                if st.button("Borrar torneo", type="secondary"):
-                    t_del = del_opts[del_sel]
-                    grupos = supabase.table("groups").select("id").eq("tournament_id", t_del["id"]).execute().data
-                    for g in grupos:
-                        supabase.table("group_players").delete().eq("group_id", g["id"]).execute()
-                    supabase.table("tournament_scores").delete().eq("tournament_id", t_del["id"]).execute()
-                    supabase.table("groups").delete().eq("tournament_id", t_del["id"]).execute()
-                    supabase.table("guests").delete().eq("tournament_date", t_del["date"]).execute()
-                    supabase.table("tournaments").delete().eq("id", t_del["id"]).execute()
-                    st.success(f"Torneo {t_del['name']} borrado.")
-                    st.rerun()
-            else:
-                st.info("No hay torneos para borrar.")
 
             # --- Gestión de Grupos ---
             st.markdown("---")
@@ -297,6 +278,27 @@ if _screen == "home":
                 st.rerun()
         else:
             st.info("No hay torneos activos.")
+
+            # --- Borrar torneo ---
+            st.markdown("---")
+            st.markdown("**Borrar torneo**")
+            torneos_admin = get_active_tournaments()
+            if torneos_admin:
+                del_opts = {f"{t['name']} ({t['access_code']})": t for t in torneos_admin}
+                del_sel = st.selectbox("Torneo a borrar", list(del_opts.keys()), key="del_sel")
+                if st.button("Borrar torneo", type="secondary"):
+                    t_del = del_opts[del_sel]
+                    grupos = supabase.table("groups").select("id").eq("tournament_id", t_del["id"]).execute().data
+                    for g in grupos:
+                        supabase.table("group_players").delete().eq("group_id", g["id"]).execute()
+                    supabase.table("tournament_scores").delete().eq("tournament_id", t_del["id"]).execute()
+                    supabase.table("groups").delete().eq("tournament_id", t_del["id"]).execute()
+                    supabase.table("guests").delete().eq("tournament_date", t_del["date"]).execute()
+                    supabase.table("tournaments").delete().eq("id", t_del["id"]).execute()
+                    st.success(f"Torneo {t_del['name']} borrado.")
+                    st.rerun()
+            else:
+                st.info("No hay torneos para borrar.")
         st.markdown("---")
         st.subheader("Lider de Grupo")
         st.caption("Ya tienes un codigo de grupo?")
