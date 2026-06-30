@@ -564,7 +564,7 @@ elif _screen == "scores":
             "Back (10-18)": fmt_score(back_total, par_back, back_hoyos),
             "Total": fmt_score(total, par_total, total_hoyos),
             "Hoyos": f"{len(total_hoyos)}/18",
-            "_sort": total if total_hoyos else 9999,
+            "_sort": (total - par_total) if total_hoyos else 9999,
         })
 
     group_board.sort(key=lambda x: x["_sort"])
@@ -646,9 +646,9 @@ elif _screen == "leaderboard":
                 "Back (10-18)": fmt_score(back_total, par_back, back_hoyos),
                 "Total": fmt_score(total, par_total, total_hoyos),
                 "Hoyos": f"{len(total_hoyos)}/18",
-                "_sort": total if total_hoyos else 9999,
-                "_front": front_total if front_hoyos else 9999,
-                "_back": back_total if back_hoyos else 9999,
+                "_sort": (total - par_total) if total_hoyos else 9999,
+                "_front": (front_total - par_front) if front_hoyos else 9999,
+                "_back": (back_total - par_back) if back_hoyos else 9999,
             })
 
     leader_data.sort(key=lambda x: x["_sort"])
@@ -703,6 +703,7 @@ elif _screen == "leaderboard":
         st.rerun()
 
     st.stop()
+
 
 
 
