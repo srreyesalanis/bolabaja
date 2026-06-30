@@ -158,17 +158,6 @@ elif st.session_state._last_screen != _screen:
 
 if _screen == "home":
     st.title("Bola Baja por Parejas - Las Cruces")
-    COLORS = [
-        "rgba(30,100,70,0.18)",
-        "rgba(20,70,130,0.18)",
-        "rgba(90,35,90,0.16)",
-        "rgba(130,65,10,0.16)",
-        "rgba(10,95,95,0.16)",
-        "rgba(65,95,20,0.16)",
-    ]
-    def card_style(idx):
-        c = COLORS[idx % len(COLORS)]
-        return f'background:{c};border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:12px 16px 4px 16px;margin-bottom:12px;'
     st.markdown("---")
     col_org, col_spec = st.columns(2)
 
@@ -200,8 +189,8 @@ if _screen == "home":
                 st.session_state.admin_authed = False
                 st.rerun()
 
-            st.markdown(f'<div style="{card_style(0)}"><strong>Crear nuevo torneo</strong></div>', unsafe_allow_html=True)
-            with st.container():
+            with st.container(border=True):
+                st.markdown('<div style="background:rgba(30,100,70,0.18);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Crear nuevo torneo</strong></div>', unsafe_allow_html=True)
                 tees = supabase.table("tees").select("id, name, color, rating, slope, par").execute().data
                 if not tees:
                     st.error("No se pudieron cargar los tees.")
@@ -222,8 +211,8 @@ if _screen == "home":
                         st.success("Torneo creado")
                         st.info(f"Codigo maestro: {code}")
                         st.session_state["admin_new_tournament_code"] = code
-            st.markdown(f'<div style="{card_style(1)}"><strong>Crear Grupo</strong></div>', unsafe_allow_html=True)
-            with st.container():
+            with st.container(border=True):
+                st.markdown('<div style="background:rgba(20,70,130,0.18);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Crear Grupo</strong></div>', unsafe_allow_html=True)
                 torneos_lider = get_active_tournaments()
                 if torneos_lider:
                     lider_opts = {t["name"]: t for t in torneos_lider}
@@ -238,8 +227,8 @@ if _screen == "home":
                 else:
                     st.info("No hay torneos activos.")
 
-            st.markdown(f'<div style="{card_style(2)}"><strong>Grupos del torneo</strong></div>', unsafe_allow_html=True)
-            with st.container():
+            with st.container(border=True):
+                st.markdown('<div style="background:rgba(90,35,90,0.16);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Grupos del torneo</strong></div>', unsafe_allow_html=True)
                 torneos_grupos = get_active_tournaments()
                 if torneos_grupos:
                     grupos_t_opts = {t["name"]: t for t in torneos_grupos}
@@ -271,8 +260,8 @@ if _screen == "home":
                 else:
                     st.info("No hay torneos activos.")
 
-            st.markdown(f'<div style="{card_style(3)}"><strong>Borrar torneo</strong></div>', unsafe_allow_html=True)
-            with st.container():
+            with st.container(border=True):
+                st.markdown('<div style="background:rgba(130,65,10,0.16);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Borrar torneo</strong></div>', unsafe_allow_html=True)
                 torneos_admin = get_active_tournaments()
                 if torneos_admin:
                     del_opts = {f"{t['name']} ({t['access_code']})": t for t in torneos_admin}
@@ -293,8 +282,8 @@ if _screen == "home":
 
     with col_spec:
         st.subheader("Espectador")
-        st.markdown(f'<div style="{card_style(4)}"><strong>Ver Leaderboard</strong></div>', unsafe_allow_html=True)
-        with st.container():
+        with st.container(border=True):
+            st.markdown('<div style="background:rgba(10,95,95,0.16);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Ver Leaderboard</strong></div>', unsafe_allow_html=True)
             torneos = get_active_tournaments()
             if torneos:
                 t_opts = {t["name"]: t for t in torneos}
@@ -310,8 +299,8 @@ if _screen == "home":
                 st.info("No hay torneos activos.")
 
         st.subheader("Lider de Grupo")
-        st.markdown(f'<div style="{card_style(5)}"><strong>Continuar mi grupo</strong></div>', unsafe_allow_html=True)
-        with st.container():
+        with st.container(border=True):
+            st.markdown('<div style="background:rgba(65,95,20,0.16);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Continuar mi grupo</strong></div>', unsafe_allow_html=True)
             st.caption("Ya tienes un codigo de grupo?")
             group_code = st.text_input("Codigo de grupo", key="group_code_input", placeholder="")
             if st.button("Continuar mi grupo", type="primary"):
