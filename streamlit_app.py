@@ -201,18 +201,18 @@ if _screen == "home":
                         tee_label = st.selectbox("Tee", list(tee_opts.keys()))
                         submitted = st.form_submit_button("Crear Torneo", type="primary")
                     if submitted:
-                    tee = tee_opts[tee_label]
-                    code = gen_code("LC")
-                    supabase.table("tournaments").insert({
-                        "name": f"Bola Baja - {fecha}",
-                        "date": str(fecha),
-                        "tee_id": tee["id"],
-                        "format": "bola_baja_parejas",
-                        "access_code": code,
-                    }).execute()
-                    st.success("Torneo creado")
-                    st.info(f"Codigo maestro: {code}")
-                    st.session_state["admin_new_tournament_code"] = code
+                        tee = tee_opts[tee_label]
+                        code = gen_code("LC")
+                        supabase.table("tournaments").insert({
+                            "name": f"Bola Baja - {fecha}",
+                            "date": str(fecha),
+                            "tee_id": tee["id"],
+                            "format": "bola_baja_parejas",
+                            "access_code": code,
+                        }).execute()
+                        st.success("Torneo creado")
+                        st.info(f"Codigo maestro: {code}")
+                        st.session_state["admin_new_tournament_code"] = code
             with st.container(border=True):
                 st.markdown("**Crear Grupo**")
                 torneos_lider = get_active_tournaments()
