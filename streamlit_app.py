@@ -252,6 +252,11 @@ if _screen == "home":
                                         st.rerun()
                                 with col_del:
                                     if st.button("Borrar grupo", key=f"del_g_{g['id']}", type="secondary"):
+                                        # Borrar guests del grupo
+                                        gp_rows = supabase.table("group_players").select("guest_id").eq("group_id", g["id"]).execute().data
+                                        guest_ids = [r["guest_id"] for r in gp_rows if r.get("guest_id")]
+                                        for gid in guest_ids:
+                                            supabase.table("guests").delete().eq("id", gid).execute()
                                         supabase.table("group_players").delete().eq("group_id", g["id"]).execute()
                                         supabase.table("tournament_scores").delete().eq("group_id", g["id"]).execute()
                                         supabase.table("groups").delete().eq("id", g["id"]).execute()
@@ -270,10 +275,13 @@ if _screen == "home":
                         t_del = del_opts[del_sel]
                         grupos = supabase.table("groups").select("id").eq("tournament_id", t_del["id"]).execute().data
                         for g in grupos:
+                            gp_rows = supabase.table("group_players").select("guest_id").eq("group_id", g["id"]).execute().data
+                            guest_ids = [r["guest_id"] for r in gp_rows if r.get("guest_id")]
+                            for gid in guest_ids:
+                                supabase.table("guests").delete().eq("id", gid).execute()
                             supabase.table("group_players").delete().eq("group_id", g["id"]).execute()
                         supabase.table("tournament_scores").delete().eq("tournament_id", t_del["id"]).execute()
                         supabase.table("groups").delete().eq("tournament_id", t_del["id"]).execute()
-                        supabase.table("guests").delete().eq("tournament_date", t_del["date"]).execute()
                         supabase.table("tournaments").delete().eq("id", t_del["id"]).execute()
                         st.success(f"Torneo {t_del['name']} borrado.")
                         st.rerun()
