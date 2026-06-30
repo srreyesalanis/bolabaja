@@ -309,10 +309,10 @@ if _screen == "home":
 
         st.subheader("Lider de Grupo")
         with st.container(border=True):
-            st.markdown('<div style="background:rgba(65,95,20,0.16);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Continuar mi grupo</strong></div>', unsafe_allow_html=True)
+            st.markdown('<div style="background:rgba(65,95,20,0.16);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Ingresar al grupo</strong></div>', unsafe_allow_html=True)
             st.caption("Ya tienes un codigo de grupo?")
             group_code = st.text_input("Codigo de grupo", key="group_code_input", placeholder="")
-            if st.button("Continuar mi grupo", type="primary"):
+            if st.button("Ingresar al grupo", type="primary"):
                 g = get_group_by_code(group_code)
                 if g:
                     t_res = supabase.table("tournaments").select("*").eq("id", g["tournament_id"]).execute()
@@ -748,6 +748,7 @@ elif _screen == "leaderboard":
         st.rerun()
 
     st.stop()
+
 
 
 
