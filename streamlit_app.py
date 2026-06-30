@@ -274,14 +274,15 @@ if _screen == "home":
                         t_del = del_opts[del_sel]
                         # 1. Borrar guests del torneo (FK a tournaments)
                         supabase.table("guests").delete().eq("tournament_id", t_del["id"]).execute()
-                        # 2. Borrar scores y jugadores de cada grupo
+                        # 2. Borrar scores por tournament_id (directo, cubre todos los casos)
+                        supabase.table("tournament_scores").delete().eq("tournament_id", t_del["id"]).execute()
+                        # 3. Borrar jugadores de cada grupo
                         grupos = supabase.table("groups").select("id").eq("tournament_id", t_del["id"]).execute().data
                         for g in grupos:
-                            supabase.table("tournament_scores").delete().eq("group_id", g["id"]).execute()
                             supabase.table("group_players").delete().eq("group_id", g["id"]).execute()
-                        # 3. Borrar grupos
+                        # 4. Borrar grupos
                         supabase.table("groups").delete().eq("tournament_id", t_del["id"]).execute()
-                        # 4. Borrar torneo
+                        # 5. Borrar torneo
                         supabase.table("tournaments").delete().eq("id", t_del["id"]).execute()
                         st.success(f"Torneo {t_del['name']} borrado.")
                         st.rerun()
