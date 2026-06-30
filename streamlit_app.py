@@ -649,13 +649,13 @@ elif _screen == "leaderboard":
 
     if con_datos:
         lider_total = min(con_datos, key=lambda x: x["_sort"])
-        st.success(f"\U0001F947 Total: **{lider_total['Pareja']}** ({lider_total['Jugadores']}) - {lider_total['Total']} | {lider_total['Grupo']}") - {lider_total['Total']} | {lider_total['Grupo']}")
+        st.success(f"\U0001F947 Total: **{lider_total['Pareja']}** ({lider_total['Jugadores']}) - {lider_total['Total']} | {lider_total['Grupo']}")
     if con_front:
         lider_front = min(con_front, key=lambda x: x["_front"])
-        st.info(f"\U0001F3CC Front: **{lider_front['Pareja']}** ({lider_front['Jugadores']}) - {lider_front['Front (1-9)']} | {lider_front['Grupo']}") - {lider_front['Front (1-9)']} | {lider_front['Grupo']}")
+        st.info(f"\U0001F3CC Front: **{lider_front['Pareja']}** ({lider_front['Jugadores']}) - {lider_front['Front (1-9)']} | {lider_front['Grupo']}")
     if con_back:
         lider_back = min(con_back, key=lambda x: x["_back"])
-        st.info(f"\U0001F3CC Back: **{lider_back['Pareja']}** ({lider_back['Jugadores']}) - {lider_back['Back (10-18)']} | {lider_back['Grupo']}") - {lider_back['Back (10-18)']} | {lider_back['Grupo']}")
+        st.info(f"\U0001F3CC Back: **{lider_back['Pareja']}** ({lider_back['Jugadores']}) - {lider_back['Back (10-18)']} | {lider_back['Grupo']}")
 
     for r in leader_data:
         del r["_sort"]
