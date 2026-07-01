@@ -678,12 +678,13 @@ elif _screen == "scores":
     # Lista ordenada de todos los jugadores (nombre, pid, gid)
     jugadores_list = []
     for pair_name, jugs in parejas.items():
-        for j in jugs:
+        for idx_j, j in enumerate(jugs):
             jugadores_list.append({
                 "nombre": j["player_name"],
                 "pair":   pair_name,
                 "pid":    j.get("player_id"),
                 "gid":    j.get("guest_id"),
+                "jkey":   "j1" if idx_j == 0 else "j2",
             })
 
     if scores_map_detail:
@@ -703,12 +704,15 @@ elif _screen == "scores":
 
         tabla_rows = []
         for hn in range(1, 19):
-            row = {"Hoyo": f"H{hn}"}
+            par = holes_par.get(hn, 4)
+            row = {"Hoyo": f"H{hn} (Par {par})"}
             tiene_algo = False
             for j in jugadores_list:
                 val = scores_map_detail.get((j["pair"], hn, j["pid"], j["gid"]))
                 if val is not None:
-                    row[j["nombre"]] = str(val)
+                    ventaja = strokes_map.get(j["pair"], {}).get(j["jkey"], {}).get(hn, 0)
+                    neto = val - ventaja
+                    row[j["nombre"]] = f"{val} ({neto})" if ventaja > 0 else str(val)
                     tiene_algo = True
                 else:
                     row[j["nombre"]] = "-"
@@ -900,12 +904,15 @@ elif _screen == "leaderboard":
 
     # Construir lista de jugadores en orden: grupo > pareja > jugador
     lb_jugadores = []
+    lb_strokes_map = {}  # (group_id, pair_name, jkey, hole_num) -> ventaja
     seen_players = set()
     for grp in groups:
         rows = get_group_players(grp["id"])
         parejas_grp = agrupar_parejas(rows)
+        grp_strokes = build_strokes_map(parejas_grp, holes)
         for pair_name, jugs in parejas_grp.items():
-            for j in jugs:
+            for idx_j, j in enumerate(jugs):
+                jkey = "j1" if idx_j == 0 else "j2"
                 pid = j.get("player_id")
                 gid = j.get("guest_id")
                 key = (grp["id"], pair_name, pid, gid)
@@ -917,7 +924,10 @@ elif _screen == "leaderboard":
                         "group_id": grp["id"],
                         "pid":      pid,
                         "gid":      gid,
+                        "jkey":     jkey,
                     })
+                for hn in range(1, 19):
+                    lb_strokes_map[(grp["id"], pair_name, jkey, hn)] = grp_strokes.get(pair_name, {}).get(jkey, {}).get(hn, 0)
 
     # Mapa de scores brutos: (group_id, pair_name, hole_number, pid, gid) -> strokes
     lb_scores_map = {}
@@ -942,12 +952,15 @@ elif _screen == "leaderboard":
 
         lb_rows = []
         for hn in range(1, 19):
-            row = {"Hoyo": f"H{hn}"}
+            par = holes_par_lb.get(hn, 4)
+            row = {"Hoyo": f"H{hn} (Par {par})"}
             tiene_algo = False
             for j in lb_jugadores:
                 val = lb_scores_map.get((j["group_id"], j["pair"], hn, j["pid"], j["gid"]))
                 if val is not None:
-                    row[j["nombre"]] = str(val)
+                    ventaja = lb_strokes_map.get((j["group_id"], j["pair"], j["jkey"], hn), 0)
+                    neto = val - ventaja
+                    row[j["nombre"]] = f"{val} ({neto})" if ventaja > 0 else str(val)
                     tiene_algo = True
                 else:
                     row[j["nombre"]] = "-"
