@@ -667,76 +667,68 @@ elif _screen == "scores":
         del r["_sort"]
     st.dataframe(pd.DataFrame(group_board)[["Ranking", "Pareja", "Jugadores", "Front (1-9)", "Back (10-18)", "Total", "Hoyos"]], use_container_width=True, hide_index=True)
 
-    st.markdown("---")
-    st.subheader("Detalle hoyo por hoyo")
-    # Mapa: (pair_name, hole_number, player_id, guest_id) -> strokes brutos
-    scores_map_detail = {}
-    for s in scores_db:
-        key = (s["pair_name"], s["hole_number"], s.get("player_id"), s.get("guest_id"))
-        scores_map_detail[key] = s["strokes"]
-
-    # Lista ordenada de todos los jugadores (nombre, pid, gid)
-    jugadores_list = []
-    for pair_name, jugs in parejas.items():
-        for idx_j, j in enumerate(jugs):
-            jugadores_list.append({
-                "nombre": j["player_name"],
-                "pair":   pair_name,
-                "pid":    j.get("player_id"),
-                "gid":    j.get("guest_id"),
-                "jkey":   "j1" if idx_j == 0 else "j2",
-            })
-
-    if scores_map_detail:
-        holes_par = {h["hole_number"]: h["par"] for h in holes}
-        # Calcular front_row antes del loop para insertarlo despues de H9
-        front_row = {"Hoyo": "Front (1-9)"}
-        back_row  = {"Hoyo": "Back (10-18)"}
-        total_row = {"Hoyo": "Total"}
-        for j in jugadores_list:
-            front_vals = [scores_map_detail.get((j["pair"], hn, j["pid"], j["gid"])) for hn in range(1, 10)]
-            back_vals  = [scores_map_detail.get((j["pair"], hn, j["pid"], j["gid"])) for hn in range(10, 19)]
-            front_sum = sum(v for v in front_vals if v is not None)
-            back_sum  = sum(v for v in back_vals  if v is not None)
-            front_neto = sum((v - strokes_map.get(j["pair"], {}).get(j["jkey"], {}).get(hn, 0)) for hn, v in enumerate(front_vals, 1) if v is not None)
-            back_neto  = sum((v - strokes_map.get(j["pair"], {}).get(j["jkey"], {}).get(hn, 0)) for hn, v in enumerate(back_vals, 10) if v is not None)
-            hay_front = any(v is not None for v in front_vals)
-            hay_back  = any(v is not None for v in back_vals)
-            front_row[j["nombre"]] = f"{front_sum} ({front_neto})" if hay_front else "-"
-            back_row[j["nombre"]]  = f"{back_sum} ({back_neto})"   if hay_back  else "-"
-            total_row[j["nombre"]] = f"{front_sum + back_sum} ({front_neto + back_neto})" if (hay_front or hay_back) else "-"
-
-        tabla_rows = []
-        for hn in range(1, 19):
-            par = holes_par.get(hn, 4)
-            row = {"Hoyo": f"H{hn} (Par {par})"}
-            tiene_algo = False
+    with st.expander("Detalle hoyo por hoyo", expanded=False):
+        scores_map_detail = {}
+        for s in scores_db:
+            key = (s["pair_name"], s["hole_number"], s.get("player_id"), s.get("guest_id"))
+            scores_map_detail[key] = s["strokes"]
+        jugadores_list = []
+        for pair_name, jugs in parejas.items():
+            for idx_j, j in enumerate(jugs):
+                jugadores_list.append({
+                    "nombre": j["player_name"],
+                    "pair":   pair_name,
+                    "pid":    j.get("player_id"),
+                    "gid":    j.get("guest_id"),
+                    "jkey":   "j1" if idx_j == 0 else "j2",
+                })
+        if scores_map_detail:
+            holes_par = {h["hole_number"]: h["par"] for h in holes}
+            front_row = {"Hoyo": "Front (1-9)"}
+            back_row  = {"Hoyo": "Back (10-18)"}
+            total_row = {"Hoyo": "Total"}
             for j in jugadores_list:
-                val = scores_map_detail.get((j["pair"], hn, j["pid"], j["gid"]))
-                if val is not None:
-                    ventaja = strokes_map.get(j["pair"], {}).get(j["jkey"], {}).get(hn, 0)
-                    neto = val - ventaja
-                    row[j["nombre"]] = f"{val} ({neto})" if ventaja > 0 else str(val)
-                    tiene_algo = True
-                else:
-                    row[j["nombre"]] = "-"
-            if tiene_algo:
-                tabla_rows.append(row)
-            if hn == 9:
-                tabla_rows.append(front_row)
-
-        if tabla_rows:
-            cols_order = ["Hoyo"] + [j["nombre"] for j in jugadores_list]
-            tabla_rows += [back_row, total_row]
-            df_detalle = pd.DataFrame(tabla_rows)[cols_order]
-            _bold_idx = {i for i, r in enumerate(tabla_rows) if r["Hoyo"] in ("Front (1-9)", "Back (10-18)", "Total")}
-            def _bold_totals(row, bold_idx=_bold_idx):
-                return ["font-weight:bold" if row.name in bold_idx else "" for _ in row]
-            st.dataframe(df_detalle.style.apply(_bold_totals, axis=1), use_container_width=True, hide_index=True)
+                front_vals = [scores_map_detail.get((j["pair"], hn, j["pid"], j["gid"])) for hn in range(1, 10)]
+                back_vals  = [scores_map_detail.get((j["pair"], hn, j["pid"], j["gid"])) for hn in range(10, 19)]
+                front_sum = sum(v for v in front_vals if v is not None)
+                back_sum  = sum(v for v in back_vals  if v is not None)
+                front_neto = sum((v - strokes_map.get(j["pair"], {}).get(j["jkey"], {}).get(hn, 0)) for hn, v in enumerate(front_vals, 1) if v is not None)
+                back_neto  = sum((v - strokes_map.get(j["pair"], {}).get(j["jkey"], {}).get(hn, 0)) for hn, v in enumerate(back_vals, 10) if v is not None)
+                hay_front = any(v is not None for v in front_vals)
+                hay_back  = any(v is not None for v in back_vals)
+                front_row[j["nombre"]] = f"{front_sum} ({front_neto})" if hay_front else "-"
+                back_row[j["nombre"]]  = f"{back_sum} ({back_neto})"   if hay_back  else "-"
+                total_row[j["nombre"]] = f"{front_sum + back_sum} ({front_neto + back_neto})" if (hay_front or hay_back) else "-"
+            tabla_rows = []
+            for hn in range(1, 19):
+                par = holes_par.get(hn, 4)
+                row = {"Hoyo": f"H{hn} (Par {par})"}
+                tiene_algo = False
+                for j in jugadores_list:
+                    val = scores_map_detail.get((j["pair"], hn, j["pid"], j["gid"]))
+                    if val is not None:
+                        ventaja = strokes_map.get(j["pair"], {}).get(j["jkey"], {}).get(hn, 0)
+                        neto = val - ventaja
+                        row[j["nombre"]] = f"{val} ({neto})" if ventaja > 0 else str(val)
+                        tiene_algo = True
+                    else:
+                        row[j["nombre"]] = "-"
+                if tiene_algo:
+                    tabla_rows.append(row)
+                if hn == 9:
+                    tabla_rows.append(front_row)
+            if tabla_rows:
+                cols_order = ["Hoyo"] + [j["nombre"] for j in jugadores_list]
+                tabla_rows += [back_row, total_row]
+                df_detalle = pd.DataFrame(tabla_rows)[cols_order]
+                _bold_idx = {i for i, r in enumerate(tabla_rows) if r["Hoyo"] in ("Front (1-9)", "Back (10-18)", "Total")}
+                def _bold_totals(row, bold_idx=_bold_idx):
+                    return ["font-weight:bold" if row.name in bold_idx else "" for _ in row]
+                st.dataframe(df_detalle.style.apply(_bold_totals, axis=1), use_container_width=True, hide_index=True)
+            else:
+                st.caption("A\u00fan no hay scores capturados.")
         else:
-            st.caption("Aún no hay scores capturados.")
-    else:
-        st.caption("Aún no hay scores capturados.")
+            st.caption("A\u00fan no hay scores capturados.")
 
     st.markdown("---")
     if st.button("Ver Leaderboard", use_container_width=True):
@@ -907,91 +899,91 @@ elif _screen == "leaderboard":
 
 
     st.markdown("---")
-    st.subheader("Detalle hoyo por hoyo")
+    with st.expander("Detalle hoyo por hoyo", expanded=False):
 
-    # Construir lista de jugadores en orden: grupo > pareja > jugador
-    lb_jugadores = []
-    lb_strokes_map = {}  # (group_id, pair_name, jkey, hole_num) -> ventaja
-    seen_players = set()
-    for grp in groups:
-        rows = get_group_players(grp["id"])
-        parejas_grp = agrupar_parejas(rows)
-        grp_strokes = build_strokes_map(parejas_grp, holes)
-        for pair_name, jugs in parejas_grp.items():
-            for idx_j, j in enumerate(jugs):
-                jkey = "j1" if idx_j == 0 else "j2"
-                pid = j.get("player_id")
-                gid = j.get("guest_id")
-                key = (grp["id"], pair_name, pid, gid)
-                if key not in seen_players:
-                    seen_players.add(key)
-                    lb_jugadores.append({
-                        "nombre":   j["player_name"],
-                        "pair":     pair_name,
-                        "group_id": grp["id"],
-                        "pid":      pid,
-                        "gid":      gid,
-                        "jkey":     jkey,
-                    })
-                for hn in range(1, 19):
-                    lb_strokes_map[(grp["id"], pair_name, jkey, hn)] = grp_strokes.get(pair_name, {}).get(jkey, {}).get(hn, 0)
+        # Construir lista de jugadores en orden: grupo > pareja > jugador
+        lb_jugadores = []
+        lb_strokes_map = {}  # (group_id, pair_name, jkey, hole_num) -> ventaja
+        seen_players = set()
+        for grp in groups:
+            rows = get_group_players(grp["id"])
+            parejas_grp = agrupar_parejas(rows)
+            grp_strokes = build_strokes_map(parejas_grp, holes)
+            for pair_name, jugs in parejas_grp.items():
+                for idx_j, j in enumerate(jugs):
+                    jkey = "j1" if idx_j == 0 else "j2"
+                    pid = j.get("player_id")
+                    gid = j.get("guest_id")
+                    key = (grp["id"], pair_name, pid, gid)
+                    if key not in seen_players:
+                        seen_players.add(key)
+                        lb_jugadores.append({
+                            "nombre":   j["player_name"],
+                            "pair":     pair_name,
+                            "group_id": grp["id"],
+                            "pid":      pid,
+                            "gid":      gid,
+                            "jkey":     jkey,
+                        })
+                    for hn in range(1, 19):
+                        lb_strokes_map[(grp["id"], pair_name, jkey, hn)] = grp_strokes.get(pair_name, {}).get(jkey, {}).get(hn, 0)
 
-    # Mapa de scores brutos: (group_id, pair_name, hole_number, pid, gid) -> strokes
-    lb_scores_map = {}
-    for s in all_scores:
-        k = (s["group_id"], s["pair_name"], s["hole_number"], s.get("player_id"), s.get("guest_id"))
-        lb_scores_map[k] = s["strokes"]
+        # Mapa de scores brutos: (group_id, pair_name, hole_number, pid, gid) -> strokes
+        lb_scores_map = {}
+        for s in all_scores:
+            k = (s["group_id"], s["pair_name"], s["hole_number"], s.get("player_id"), s.get("guest_id"))
+            lb_scores_map[k] = s["strokes"]
 
-    if lb_scores_map:
-        holes_par_lb = {h["hole_number"]: h["par"] for h in holes}
-        # Calcular totales antes del loop para insertarlos en orden
-        lb_front_row = {"Hoyo": "Front (1-9)"}
-        lb_back_row  = {"Hoyo": "Back (10-18)"}
-        lb_total_row = {"Hoyo": "Total"}
-        for j in lb_jugadores:
-            fv = [lb_scores_map.get((j["group_id"], j["pair"], hn, j["pid"], j["gid"])) for hn in range(1, 10)]
-            bv = [lb_scores_map.get((j["group_id"], j["pair"], hn, j["pid"], j["gid"])) for hn in range(10, 19)]
-            fs = sum(v for v in fv if v is not None)
-            bs = sum(v for v in bv if v is not None)
-            fn = sum((v - lb_strokes_map.get((j["group_id"], j["pair"], j["jkey"], hn), 0)) for hn, v in enumerate(fv, 1) if v is not None)
-            bn = sum((v - lb_strokes_map.get((j["group_id"], j["pair"], j["jkey"], hn), 0)) for hn, v in enumerate(bv, 10) if v is not None)
-            hay_f = any(v is not None for v in fv)
-            hay_b = any(v is not None for v in bv)
-            lb_front_row[j["nombre"]] = f"{fs} ({fn})" if hay_f else "-"
-            lb_back_row[j["nombre"]]  = f"{bs} ({bn})" if hay_b else "-"
-            lb_total_row[j["nombre"]] = f"{fs + bs} ({fn + bn})" if (hay_f or hay_b) else "-"
-
-        lb_rows = []
-        for hn in range(1, 19):
-            par = holes_par_lb.get(hn, 4)
-            row = {"Hoyo": f"H{hn} (Par {par})"}
-            tiene_algo = False
+        if lb_scores_map:
+            holes_par_lb = {h["hole_number"]: h["par"] for h in holes}
+            # Calcular totales antes del loop para insertarlos en orden
+            lb_front_row = {"Hoyo": "Front (1-9)"}
+            lb_back_row  = {"Hoyo": "Back (10-18)"}
+            lb_total_row = {"Hoyo": "Total"}
             for j in lb_jugadores:
-                val = lb_scores_map.get((j["group_id"], j["pair"], hn, j["pid"], j["gid"]))
-                if val is not None:
-                    ventaja = lb_strokes_map.get((j["group_id"], j["pair"], j["jkey"], hn), 0)
-                    neto = val - ventaja
-                    row[j["nombre"]] = f"{val} ({neto})" if ventaja > 0 else str(val)
-                    tiene_algo = True
-                else:
-                    row[j["nombre"]] = "-"
-            if tiene_algo:
-                lb_rows.append(row)
-            if hn == 9:
-                lb_rows.append(lb_front_row)
+                fv = [lb_scores_map.get((j["group_id"], j["pair"], hn, j["pid"], j["gid"])) for hn in range(1, 10)]
+                bv = [lb_scores_map.get((j["group_id"], j["pair"], hn, j["pid"], j["gid"])) for hn in range(10, 19)]
+                fs = sum(v for v in fv if v is not None)
+                bs = sum(v for v in bv if v is not None)
+                fn = sum((v - lb_strokes_map.get((j["group_id"], j["pair"], j["jkey"], hn), 0)) for hn, v in enumerate(fv, 1) if v is not None)
+                bn = sum((v - lb_strokes_map.get((j["group_id"], j["pair"], j["jkey"], hn), 0)) for hn, v in enumerate(bv, 10) if v is not None)
+                hay_f = any(v is not None for v in fv)
+                hay_b = any(v is not None for v in bv)
+                lb_front_row[j["nombre"]] = f"{fs} ({fn})" if hay_f else "-"
+                lb_back_row[j["nombre"]]  = f"{bs} ({bn})" if hay_b else "-"
+                lb_total_row[j["nombre"]] = f"{fs + bs} ({fn + bn})" if (hay_f or hay_b) else "-"
 
-        if lb_rows:
-            cols_lb = ["Hoyo"] + [j["nombre"] for j in lb_jugadores]
-            lb_rows += [lb_back_row, lb_total_row]
-            df_lb = pd.DataFrame(lb_rows)[cols_lb]
-            _lb_bold_idx = {i for i, r in enumerate(lb_rows) if r["Hoyo"] in ("Front (1-9)", "Back (10-18)", "Total")}
-            def _lb_bold_totals(row, bold_idx=_lb_bold_idx):
-                return ["font-weight:bold" if row.name in bold_idx else "" for _ in row]
-            st.dataframe(df_lb.style.apply(_lb_bold_totals, axis=1), use_container_width=True, hide_index=True)
+            lb_rows = []
+            for hn in range(1, 19):
+                par = holes_par_lb.get(hn, 4)
+                row = {"Hoyo": f"H{hn} (Par {par})"}
+                tiene_algo = False
+                for j in lb_jugadores:
+                    val = lb_scores_map.get((j["group_id"], j["pair"], hn, j["pid"], j["gid"]))
+                    if val is not None:
+                        ventaja = lb_strokes_map.get((j["group_id"], j["pair"], j["jkey"], hn), 0)
+                        neto = val - ventaja
+                        row[j["nombre"]] = f"{val} ({neto})" if ventaja > 0 else str(val)
+                        tiene_algo = True
+                    else:
+                        row[j["nombre"]] = "-"
+                if tiene_algo:
+                    lb_rows.append(row)
+                if hn == 9:
+                    lb_rows.append(lb_front_row)
+
+            if lb_rows:
+                cols_lb = ["Hoyo"] + [j["nombre"] for j in lb_jugadores]
+                lb_rows += [lb_back_row, lb_total_row]
+                df_lb = pd.DataFrame(lb_rows)[cols_lb]
+                _lb_bold_idx = {i for i, r in enumerate(lb_rows) if r["Hoyo"] in ("Front (1-9)", "Back (10-18)", "Total")}
+                def _lb_bold_totals(row, bold_idx=_lb_bold_idx):
+                    return ["font-weight:bold" if row.name in bold_idx else "" for _ in row]
+                st.dataframe(df_lb.style.apply(_lb_bold_totals, axis=1), use_container_width=True, hide_index=True)
+            else:
+                st.caption("Aún no hay scores capturados.")
         else:
             st.caption("Aún no hay scores capturados.")
-    else:
-        st.caption("Aún no hay scores capturados.")
 
     if st.button("Salir", use_container_width=True):
         go_home()
