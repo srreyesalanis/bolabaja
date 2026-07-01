@@ -717,15 +717,12 @@ elif _screen == "scores":
         st.caption("Aún no hay scores capturados.")
 
     st.markdown("---")
-    col_back, col_lb = st.columns([1, 1])
-    with col_back:
-        if st.button("Salir", use_container_width=True):
-            go_home()
-            st.rerun()
-    with col_lb:
-        if st.button("Ver Leaderboard", use_container_width=True):
-            st.session_state.screen = "leaderboard"
-            st.rerun()
+    if st.button("Ver Leaderboard", use_container_width=True):
+        st.session_state.screen = "leaderboard"
+        st.rerun()
+    if st.button("Salir", use_container_width=True):
+        go_home()
+        st.rerun()
 
     st.stop()
 
