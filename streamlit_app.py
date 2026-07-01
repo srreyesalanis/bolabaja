@@ -729,7 +729,10 @@ elif _screen == "scores":
             cols_order = ["Hoyo"] + [j["nombre"] for j in jugadores_list]
             tabla_rows += [back_row, total_row]
             df_detalle = pd.DataFrame(tabla_rows)[cols_order]
-            st.dataframe(df_detalle, use_container_width=True, hide_index=True)
+            _bold_idx = {i for i, r in enumerate(tabla_rows) if r["Hoyo"] in ("Front (1-9)", "Back (10-18)", "Total")}
+            def _bold_totals(row, bold_idx=_bold_idx):
+                return ["font-weight:bold" if row.name in bold_idx else "" for _ in row]
+            st.dataframe(df_detalle.style.apply(_bold_totals, axis=1), use_container_width=True, hide_index=True)
         else:
             st.caption("Aún no hay scores capturados.")
     else:
@@ -980,7 +983,11 @@ elif _screen == "leaderboard":
         if lb_rows:
             cols_lb = ["Hoyo"] + [j["nombre"] for j in lb_jugadores]
             lb_rows += [lb_back_row, lb_total_row]
-            st.dataframe(pd.DataFrame(lb_rows)[cols_lb], use_container_width=True, hide_index=True)
+            df_lb = pd.DataFrame(lb_rows)[cols_lb]
+            _lb_bold_idx = {i for i, r in enumerate(lb_rows) if r["Hoyo"] in ("Front (1-9)", "Back (10-18)", "Total")}
+            def _lb_bold_totals(row, bold_idx=_lb_bold_idx):
+                return ["font-weight:bold" if row.name in bold_idx else "" for _ in row]
+            st.dataframe(df_lb.style.apply(_lb_bold_totals, axis=1), use_container_width=True, hide_index=True)
         else:
             st.caption("Aún no hay scores capturados.")
     else:
