@@ -493,14 +493,13 @@ elif _screen == "scores":
     st.query_params["h"] = str(st.session_state.hole_num)
 
     titulo = f"{t['name']} - {g['name']}"
-    subtitulo = f"Tee: {tee['color']} | Codigo: {g['access_code']}"
+    subtitulo = f"Tee: {tee['color']}"
     st.markdown(
         f'<p style="font-size:1.2em;font-weight:700;margin:0 0 2px 0;">{titulo}</p>'
-        f'<p style="font-size:0.8em;color:#888;margin:0 0 8px 0;">{subtitulo}</p>',
+        f'<p style="font-size:0.8em;color:#888;margin:0 0 4px 0;">{subtitulo}</p>',
         unsafe_allow_html=True
     )
-
-
+    st.code(g['access_code'], language=None)
     st.markdown("---")
 
     existing_scores = get_group_scores(t["id"], g["id"])
