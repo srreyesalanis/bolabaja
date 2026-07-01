@@ -528,14 +528,32 @@ elif _screen == "scores":
     hole_info = next(h for h in holes if h["hole_number"] == hole_num)
     st.markdown(f"**Hoyo {hole_num} - Par {hole_info['par']} | HCP: {hole_info['handicap']}**")
 
+    # Colores por pareja (ciclico)
+    PAIR_COLORS = [
+        ("#1a472a", "#e8f5e9"),  # verde
+        ("#1a3a5c", "#e3f0fb"),  # azul
+        ("#6b2d2d", "#fdecea"),  # rojo
+        ("#4a3000", "#fff8e1"),  # cafe/amarillo
+        ("#2d1a4a", "#f3e5f5"),  # morado
+        ("#005050", "#e0f7f7"),  # teal
+        ("#3a3a00", "#f9f9e0"),  # olivo
+        ("#3a0030", "#fce4f6"),  # magenta
+    ]
+
     cols = st.columns(max(len(parejas), 1))
     scores_to_save = []
 
     for i, (pair_name, jugadores) in enumerate(parejas.items()):
         j1 = jugadores[0]
         j2 = jugadores[1]
+        border_color, bg_color = PAIR_COLORS[i % len(PAIR_COLORS)]
         with cols[i]:
-            st.markdown(f"**{pair_name}**")
+            st.markdown(
+                f'<div style="background:{bg_color};border-left:5px solid {border_color};'
+                f'border-radius:8px;padding:10px 14px 6px 14px;margin-bottom:10px;">'
+                f'<strong style="color:{border_color};font-size:1.05em;">{pair_name}</strong></div>',
+                unsafe_allow_html=True
+            )
             sg1 = strokes_map[pair_name]["j1"][hole_num]
             sg2 = strokes_map[pair_name]["j2"][hole_num]
             pid1 = j1.get("player_id")
@@ -547,13 +565,19 @@ elif _screen == "scores":
             saved1 = (pair_name, hole_num, pid1, gid1) in existing_map
             saved2 = (pair_name, hole_num, pid2, gid2) in existing_map
 
-            st.caption(f"{j1['player_name']} | +{sg1} ventaja{'  âœ…' if saved1 else ''}")
-            g1_val = st.number_input(f"Golpes {j1['player_name']}", min_value=1, max_value=15,
-                value=prev1, key=f"g1_{pair_name}_{hole_num}")
+            ventaja1 = f"+{sg1} ventaja" if sg1 > 0 else "Sin ventaja"
+            ventaja2 = f"+{sg2} ventaja" if sg2 > 0 else "Sin ventaja"
+            saved_icon1 = " \u2705" if saved1 else ""
+            saved_icon2 = " \u2705" if saved2 else ""
 
-            st.caption(f"{j2['player_name']} | +{sg2} ventaja{'  âœ…' if saved2 else ''}")
-            g2_val = st.number_input(f"Golpes {j2['player_name']}", min_value=1, max_value=15,
-                value=prev2, key=f"g2_{pair_name}_{hole_num}")
+            g1_val = st.number_input(
+                f"Golpes {j1['player_name']} | {ventaja1}{saved_icon1}",
+                min_value=1, max_value=15, value=prev1, key=f"g1_{pair_name}_{hole_num}"
+            )
+            g2_val = st.number_input(
+                f"Golpes {j2['player_name']} | {ventaja2}{saved_icon2}",
+                min_value=1, max_value=15, value=prev2, key=f"g2_{pair_name}_{hole_num}"
+            )
 
             net1 = g1_val - sg1
             net2 = g2_val - sg2
@@ -564,7 +588,6 @@ elif _screen == "scores":
 
             scores_to_save.append((pair_name, pid1, gid1, g1_val, net1))
             scores_to_save.append((pair_name, pid2, gid2, g2_val, net2))
-
     if st.button(f"Guardar Hoyo {hole_num}", type="primary"):
         for pair_name, pid, gid, strokes, net in scores_to_save:
             upsert_score(t["id"], g["id"], pair_name, pid, gid, hole_num, strokes, net)
