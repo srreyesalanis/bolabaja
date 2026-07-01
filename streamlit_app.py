@@ -504,6 +504,19 @@ elif _screen == "scores":
         if st.button("Ver Leaderboard", use_container_width=True):
             st.session_state.screen = "leaderboard"
             st.rerun()
+    # CSS global que fuerza columnas a no colapsar en movil
+    st.markdown("""<style>
+    @media (max-width: 768px) {
+        section[data-testid="stMain"] div[data-testid="stHorizontalBlock"] {
+            flex-wrap: nowrap !important;
+        }
+        section[data-testid="stMain"] div[data-testid="stColumn"] {
+            min-width: 0 !important;
+            width: 50% !important;
+            flex: 1 1 50% !important;
+        }
+    }
+    </style>""", unsafe_allow_html=True)
 
     st.markdown("---")
 
