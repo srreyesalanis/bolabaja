@@ -186,7 +186,7 @@ elif st.session_state._last_screen != _screen:
     st.rerun()
 
 if _screen == "home":
-    st.title("Bola Baja por Parejas - Las Cruces")
+    st.markdown('<p style="font-size:1.4em;font-weight:700;margin:0 0 4px 0;">🏌️ Bola Baja por Parejas - Las Cruces</p>', unsafe_allow_html=True)
     st.markdown("---")
     col_org, col_spec = st.columns(2)
 
