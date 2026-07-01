@@ -586,13 +586,24 @@ elif _screen == "scores":
                 ganador_hoyo = j1["player_name"] if net1 <= net2 else j2["player_name"]
                 vs_par = bola_baja - hole_info["par"]
                 vs_par_str = f"+{vs_par}" if vs_par > 0 else str(vs_par)
-                c_score, c_par, c_name = st.columns([1, 1, 2])
-                with c_score:
-                    st.metric("Bola baja", bola_baja)
-                with c_par:
-                    st.metric("Vs par", vs_par_str)
-                with c_name:
-                    st.metric("Aporta", ganador_hoyo)
+                vs_color = "#c0392b" if vs_par > 0 else ("#27ae60" if vs_par < 0 else "#555")
+                st.markdown(
+                    f"""<div style="display:flex;gap:16px;align-items:center;padding:6px 2px 2px 2px;">
+                        <div style="text-align:center;">
+                            <div style="font-size:0.68em;color:#666;line-height:1.2;">Bola baja</div>
+                            <div style="font-size:1.1em;font-weight:700;">{bola_baja}</div>
+                        </div>
+                        <div style="text-align:center;">
+                            <div style="font-size:0.68em;color:#666;line-height:1.2;">Vs par</div>
+                            <div style="font-size:1.1em;font-weight:700;color:{vs_color};">{vs_par_str}</div>
+                        </div>
+                        <div style="text-align:center;flex:1;min-width:0;">
+                            <div style="font-size:0.68em;color:#666;line-height:1.2;">Aporta</div>
+                            <div style="font-size:0.85em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{ganador_hoyo}</div>
+                        </div>
+                    </div>""",
+                    unsafe_allow_html=True
+                )
 
                 scores_to_save.append((pair_name, pid1, gid1, g1_val, net1))
                 scores_to_save.append((pair_name, pid2, gid2, g2_val, net2))
