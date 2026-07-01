@@ -312,6 +312,22 @@ if _screen == "home":
                         participantes = ", ".join([p["player_name"] for p in players_g]) if players_g else "Sin jugadores"
                         with st.expander(f"{g['name']} — Codigo: {g['access_code']}"):
                             st.caption(f"Participantes: {participantes}")
+                            st.text_input("Codigo de grupo", value=g["access_code"], key=f"code_copy_{g['id']}", disabled=True)
+                            if st.button("Ingresar a este grupo", key=f"enter_g_{g['id']}", use_container_width=True):
+                                t_res = supabase.table("tournaments").select("*").eq("id", g["tournament_id"]).execute()
+                                t_g = t_res.data[0]
+                                tee_res_g = supabase.table("tees").select("*").eq("id", t_g["tee_id"]).execute()
+                                holes_g = get_holes()
+                                rows_g = get_group_players(g["id"])
+                                parejas_g = agrupar_parejas(rows_g)
+                                st.session_state.tournament = {**t_g, "tee": tee_res_g.data[0]}
+                                st.session_state.group = g
+                                st.session_state.parejas = parejas_g
+                                st.session_state.strokes_map = build_strokes_map(parejas_g, holes_g)
+                                st.session_state.role = "leader"
+                                st.session_state.screen = "scores"
+                                st.query_params["g"] = g["access_code"]
+                                st.rerun()
                             nuevo_nombre = st.text_input("Nombre del grupo", value=g["name"], key=f"edit_name_{g['id']}")
                             col_save, col_del = st.columns(2)
                             with col_save:
