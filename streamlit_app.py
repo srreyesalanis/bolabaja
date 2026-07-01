@@ -499,15 +499,6 @@ elif _screen == "scores":
         f'<p style="font-size:0.8em;color:#888;margin:0 0 8px 0;">{subtitulo}</p>',
         unsafe_allow_html=True
     )
-    col_back, col_lb = st.columns([1, 1])
-    with col_back:
-        if st.button("Salir", use_container_width=True):
-            go_home()
-            st.rerun()
-    with col_lb:
-        if st.button("Ver Leaderboard", use_container_width=True):
-            st.session_state.screen = "leaderboard"
-            st.rerun()
 
 
     st.markdown("---")
@@ -677,6 +668,17 @@ elif _screen == "scores":
     for r in group_board:
         del r["_sort"]
     st.dataframe(pd.DataFrame(group_board)[["Ranking", "Pareja", "Jugadores", "Front (1-9)", "Back (10-18)", "Total", "Hoyos"]], use_container_width=True, hide_index=True)
+
+    st.markdown("---")
+    col_back, col_lb = st.columns([1, 1])
+    with col_back:
+        if st.button("Salir", use_container_width=True):
+            go_home()
+            st.rerun()
+    with col_lb:
+        if st.button("Ver Leaderboard", use_container_width=True):
+            st.session_state.screen = "leaderboard"
+            st.rerun()
 
     st.stop()
 
