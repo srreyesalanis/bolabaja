@@ -747,6 +747,8 @@ elif _screen == "leaderboard":
         if st.button("Volver al grupo", use_container_width=True):
             st.session_state.screen = "scores"
             st.rerun()
+    if st.button("Actualizar", key="refresh_leaderboard", use_container_width=True):
+        st.rerun()
 
     st.markdown("---")
 
