@@ -583,7 +583,14 @@ elif _screen == "scores":
                 net1 = g1_val - sg1
                 net2 = g2_val - sg2
                 bola_baja = min(net1, net2)
-                ganador_hoyo = j1["player_name"] if net1 <= net2 else j2["player_name"]
+                if net1 == net2:
+                    n1 = j1["player_name"].split()[0]
+                    n2 = j2["player_name"].split()[0]
+                    ganador_hoyo = f"{n1}/{n2}"
+                elif net1 < net2:
+                    ganador_hoyo = j1["player_name"]
+                else:
+                    ganador_hoyo = j2["player_name"]
                 vs_par = bola_baja - hole_info["par"]
                 vs_par_str = f"+{vs_par}" if vs_par > 0 else str(vs_par)
                 vs_color = "#c0392b" if vs_par > 0 else ("#27ae60" if vs_par < 0 else "#555")
