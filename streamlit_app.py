@@ -698,9 +698,13 @@ elif _screen == "scores":
             back_vals  = [scores_map_detail.get((j["pair"], hn, j["pid"], j["gid"])) for hn in range(10, 19)]
             front_sum = sum(v for v in front_vals if v is not None)
             back_sum  = sum(v for v in back_vals  if v is not None)
-            front_row[j["nombre"]] = str(front_sum) if any(v is not None for v in front_vals) else "-"
-            back_row[j["nombre"]]  = str(back_sum)  if any(v is not None for v in back_vals)  else "-"
-            total_row[j["nombre"]] = str(front_sum + back_sum) if any(v is not None for v in front_vals + back_vals) else "-"
+            front_neto = sum((v - strokes_map.get(j["pair"], {}).get(j["jkey"], {}).get(hn, 0)) for hn, v in enumerate(front_vals, 1) if v is not None)
+            back_neto  = sum((v - strokes_map.get(j["pair"], {}).get(j["jkey"], {}).get(hn, 0)) for hn, v in enumerate(back_vals, 10) if v is not None)
+            hay_front = any(v is not None for v in front_vals)
+            hay_back  = any(v is not None for v in back_vals)
+            front_row[j["nombre"]] = f"{front_sum} ({front_neto})" if hay_front else "-"
+            back_row[j["nombre"]]  = f"{back_sum} ({back_neto})"   if hay_back  else "-"
+            total_row[j["nombre"]] = f"{front_sum + back_sum} ({front_neto + back_neto})" if (hay_front or hay_back) else "-"
 
         tabla_rows = []
         for hn in range(1, 19):
@@ -946,9 +950,13 @@ elif _screen == "leaderboard":
             bv = [lb_scores_map.get((j["group_id"], j["pair"], hn, j["pid"], j["gid"])) for hn in range(10, 19)]
             fs = sum(v for v in fv if v is not None)
             bs = sum(v for v in bv if v is not None)
-            lb_front_row[j["nombre"]] = str(fs) if any(v is not None for v in fv) else "-"
-            lb_back_row[j["nombre"]]  = str(bs) if any(v is not None for v in bv) else "-"
-            lb_total_row[j["nombre"]] = str(fs + bs) if any(v is not None for v in fv + bv) else "-"
+            fn = sum((v - lb_strokes_map.get((j["group_id"], j["pair"], j["jkey"], hn), 0)) for hn, v in enumerate(fv, 1) if v is not None)
+            bn = sum((v - lb_strokes_map.get((j["group_id"], j["pair"], j["jkey"], hn), 0)) for hn, v in enumerate(bv, 10) if v is not None)
+            hay_f = any(v is not None for v in fv)
+            hay_b = any(v is not None for v in bv)
+            lb_front_row[j["nombre"]] = f"{fs} ({fn})" if hay_f else "-"
+            lb_back_row[j["nombre"]]  = f"{bs} ({bn})" if hay_b else "-"
+            lb_total_row[j["nombre"]] = f"{fs + bs} ({fn + bn})" if (hay_f or hay_b) else "-"
 
         lb_rows = []
         for hn in range(1, 19):
