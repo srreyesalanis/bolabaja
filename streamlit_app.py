@@ -548,46 +548,47 @@ elif _screen == "scores":
         j2 = jugadores[1]
         border_color, bg_color = PAIR_COLORS[i % len(PAIR_COLORS)]
         with cols[i]:
-            st.markdown(
-                f'<div style="background:{bg_color};border-left:5px solid {border_color};'
-                f'border-radius:8px;padding:10px 14px 6px 14px;margin-bottom:10px;">'
-                f'<strong style="color:{border_color};font-size:1.05em;">{pair_name}</strong></div>',
-                unsafe_allow_html=True
-            )
-            sg1 = strokes_map[pair_name]["j1"][hole_num]
-            sg2 = strokes_map[pair_name]["j2"][hole_num]
-            pid1 = j1.get("player_id")
-            gid1 = j1.get("guest_id")
-            pid2 = j2.get("player_id")
-            gid2 = j2.get("guest_id")
-            prev1 = existing_map.get((pair_name, hole_num, pid1, gid1), hole_info["par"])
-            prev2 = existing_map.get((pair_name, hole_num, pid2, gid2), hole_info["par"])
-            saved1 = (pair_name, hole_num, pid1, gid1) in existing_map
-            saved2 = (pair_name, hole_num, pid2, gid2) in existing_map
+            with st.container(border=True):
+                st.markdown(
+                    f'<div style="background:{bg_color};border-left:5px solid {border_color};'
+                    f'border-radius:6px;padding:8px 12px;margin-bottom:12px;">'
+                    f'<strong style="color:{border_color};font-size:1.08em;">{pair_name}</strong></div>',
+                    unsafe_allow_html=True
+                )
+                sg1 = strokes_map[pair_name]["j1"][hole_num]
+                sg2 = strokes_map[pair_name]["j2"][hole_num]
+                pid1 = j1.get("player_id")
+                gid1 = j1.get("guest_id")
+                pid2 = j2.get("player_id")
+                gid2 = j2.get("guest_id")
+                prev1 = existing_map.get((pair_name, hole_num, pid1, gid1), hole_info["par"])
+                prev2 = existing_map.get((pair_name, hole_num, pid2, gid2), hole_info["par"])
+                saved1 = (pair_name, hole_num, pid1, gid1) in existing_map
+                saved2 = (pair_name, hole_num, pid2, gid2) in existing_map
 
-            ventaja1 = f"+{sg1} ventaja" if sg1 > 0 else "Sin ventaja"
-            ventaja2 = f"+{sg2} ventaja" if sg2 > 0 else "Sin ventaja"
-            saved_icon1 = " \u2705" if saved1 else ""
-            saved_icon2 = " \u2705" if saved2 else ""
+                ventaja1 = f"+{sg1} ventaja" if sg1 > 0 else "Sin ventaja"
+                ventaja2 = f"+{sg2} ventaja" if sg2 > 0 else "Sin ventaja"
+                saved_icon1 = " \u2705" if saved1 else ""
+                saved_icon2 = " \u2705" if saved2 else ""
 
-            g1_val = st.number_input(
-                f"Golpes {j1['player_name']} | {ventaja1}{saved_icon1}",
-                min_value=1, max_value=15, value=prev1, key=f"g1_{pair_name}_{hole_num}"
-            )
-            g2_val = st.number_input(
-                f"Golpes {j2['player_name']} | {ventaja2}{saved_icon2}",
-                min_value=1, max_value=15, value=prev2, key=f"g2_{pair_name}_{hole_num}"
-            )
+                g1_val = st.number_input(
+                    f"Golpes {j1['player_name']} | {ventaja1}{saved_icon1}",
+                    min_value=1, max_value=15, value=prev1, key=f"g1_{pair_name}_{hole_num}"
+                )
+                g2_val = st.number_input(
+                    f"Golpes {j2['player_name']} | {ventaja2}{saved_icon2}",
+                    min_value=1, max_value=15, value=prev2, key=f"g2_{pair_name}_{hole_num}"
+                )
 
-            net1 = g1_val - sg1
-            net2 = g2_val - sg2
-            bola_baja = min(net1, net2)
-            ganador_hoyo = j1["player_name"] if net1 <= net2 else j2["player_name"]
-            st.metric("Bola baja neta", bola_baja, delta=f"{bola_baja - hole_info['par']} vs par")
-            st.caption(f"Bola baja: {ganador_hoyo}")
+                net1 = g1_val - sg1
+                net2 = g2_val - sg2
+                bola_baja = min(net1, net2)
+                ganador_hoyo = j1["player_name"] if net1 <= net2 else j2["player_name"]
+                st.metric("Bola baja neta", bola_baja, delta=f"{bola_baja - hole_info['par']} vs par")
+                st.caption(f"Bola baja: {ganador_hoyo}")
 
-            scores_to_save.append((pair_name, pid1, gid1, g1_val, net1))
-            scores_to_save.append((pair_name, pid2, gid2, g2_val, net2))
+                scores_to_save.append((pair_name, pid1, gid1, g1_val, net1))
+                scores_to_save.append((pair_name, pid2, gid2, g2_val, net2))
     if st.button(f"Guardar Hoyo {hole_num}", type="primary"):
         for pair_name, pid, gid, strokes, net in scores_to_save:
             upsert_score(t["id"], g["id"], pair_name, pid, gid, hole_num, strokes, net)
