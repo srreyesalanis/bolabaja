@@ -670,6 +670,46 @@ elif _screen == "scores":
     st.dataframe(pd.DataFrame(group_board)[["Ranking", "Pareja", "Jugadores", "Front (1-9)", "Back (10-18)", "Total", "Hoyos"]], use_container_width=True, hide_index=True)
 
     st.markdown("---")
+    st.subheader("Detalle hoyo por hoyo")
+    # Construir tabla: filas = parejas, columnas = hoyos 1-18
+    # Valor = bola baja neta del hoyo (min de los dos jugadores)
+    hoyo_detalle = {}  # pair_name -> {hole_num: bola_baja_neta}
+    for pair_name in parejas:
+        hoyo_detalle[pair_name] = {}
+    for (pn, hn), nets in hole_scores.items():
+        if pn in hoyo_detalle and len(nets) >= 2:
+            hoyo_detalle[pn][hn] = min(nets)
+
+    # Hoyos jugados (solo los que tiene alguna pareja)
+    hoyos_jugados = sorted(set(
+        hn for pn in hoyo_detalle for hn in hoyo_detalle[pn]
+    ))
+
+    if hoyos_jugados:
+        holes_par = {h["hole_number"]: h["par"] for h in holes}
+        tabla_rows = []
+        for pair_name in parejas:
+            row = {"Pareja": pair_name}
+            total_neto = 0
+            for hn in hoyos_jugados:
+                val = hoyo_detalle[pair_name].get(hn)
+                if val is not None:
+                    par = holes_par.get(hn, 4)
+                    diff = val - par
+                    diff_str = f"+{diff}" if diff > 0 else str(diff)
+                    row[f"H{hn}"] = f"{val} ({diff_str})"
+                    total_neto += val
+                else:
+                    row[f"H{hn}"] = "-"
+            tabla_rows.append(row)
+
+        cols_order = ["Pareja"] + [f"H{hn}" for hn in hoyos_jugados]
+        df_detalle = pd.DataFrame(tabla_rows)[cols_order]
+        st.dataframe(df_detalle, use_container_width=True, hide_index=True)
+    else:
+        st.caption("Aún no hay scores capturados.")
+
+    st.markdown("---")
     col_back, col_lb = st.columns([1, 1])
     with col_back:
         if st.button("Salir", use_container_width=True):
