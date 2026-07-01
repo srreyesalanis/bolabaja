@@ -312,7 +312,7 @@ if _screen == "home":
                         participantes = ", ".join([p["player_name"] for p in players_g]) if players_g else "Sin jugadores"
                         with st.expander(f"{g['name']} — Codigo: {g['access_code']}"):
                             st.caption(f"Participantes: {participantes}")
-                            st.text_input("Codigo de grupo", value=g["access_code"], key=f"code_copy_{g['id']}", disabled=True)
+                            st.code(g["access_code"], language=None)
                             if st.button("Ingresar a este grupo", key=f"enter_g_{g['id']}", use_container_width=True):
                                 t_res = supabase.table("tournaments").select("*").eq("id", g["tournament_id"]).execute()
                                 t_g = t_res.data[0]
