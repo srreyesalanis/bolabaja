@@ -492,8 +492,11 @@ elif _screen == "scores":
     st.query_params["g"] = g["access_code"]
     st.query_params["h"] = str(st.session_state.hole_num)
 
-    st.title(f"{t['name']} - {g['name']}")
-    st.caption(f"Tee: {tee['color']} | Codigo grupo: {g['access_code']}")
+    st.markdown(
+        f'<p style="font-size:1.2em;font-weight:700;margin:0 0 2px 0;">{t["name"]} - {g["name"]}</p>
+        <p style="font-size:0.8em;color:#888;margin:0 0 8px 0;">Tee: {tee["color"]} | Codigo: {g["access_code"]}</p>',
+        unsafe_allow_html=True
+    )
 
     col_back, col_lb = st.columns([1, 1])
     with col_back:
