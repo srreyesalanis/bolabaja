@@ -707,6 +707,19 @@ elif _screen == "scores":
 
         if tabla_rows:
             cols_order = ["Hoyo"] + [j["nombre"] for j in jugadores_list]
+            # Filas de totales Front / Back / Total
+            front_row = {"Hoyo": "Front (1-9)"}
+            back_row  = {"Hoyo": "Back (10-18)"}
+            total_row = {"Hoyo": "Total"}
+            for j in jugadores_list:
+                front_vals = [scores_map_detail.get((j["pair"], hn, j["pid"], j["gid"])) for hn in range(1, 10)]
+                back_vals  = [scores_map_detail.get((j["pair"], hn, j["pid"], j["gid"])) for hn in range(10, 19)]
+                front_sum = sum(v for v in front_vals if v is not None)
+                back_sum  = sum(v for v in back_vals  if v is not None)
+                front_row[j["nombre"]] = str(front_sum) if any(v is not None for v in front_vals) else "-"
+                back_row[j["nombre"]]  = str(back_sum)  if any(v is not None for v in back_vals)  else "-"
+                total_row[j["nombre"]] = str(front_sum + back_sum) if any(v is not None for v in front_vals + back_vals) else "-"
+            tabla_rows += [front_row, back_row, total_row]
             df_detalle = pd.DataFrame(tabla_rows)[cols_order]
             st.dataframe(df_detalle, use_container_width=True, hide_index=True)
         else:
@@ -933,6 +946,19 @@ elif _screen == "leaderboard":
 
         if lb_rows:
             cols_lb = ["Hoyo"] + [j["nombre"] for j in lb_jugadores]
+            # Filas de totales Front / Back / Total
+            lb_front_row = {"Hoyo": "Front (1-9)"}
+            lb_back_row  = {"Hoyo": "Back (10-18)"}
+            lb_total_row = {"Hoyo": "Total"}
+            for j in lb_jugadores:
+                fv = [lb_scores_map.get((j["group_id"], j["pair"], hn, j["pid"], j["gid"])) for hn in range(1, 10)]
+                bv = [lb_scores_map.get((j["group_id"], j["pair"], hn, j["pid"], j["gid"])) for hn in range(10, 19)]
+                fs = sum(v for v in fv if v is not None)
+                bs = sum(v for v in bv if v is not None)
+                lb_front_row[j["nombre"]] = str(fs) if any(v is not None for v in fv) else "-"
+                lb_back_row[j["nombre"]]  = str(bs) if any(v is not None for v in bv) else "-"
+                lb_total_row[j["nombre"]] = str(fs + bs) if any(v is not None for v in fv + bv) else "-"
+            lb_rows += [lb_front_row, lb_back_row, lb_total_row]
             st.dataframe(pd.DataFrame(lb_rows)[cols_lb], use_container_width=True, hide_index=True)
         else:
             st.caption("Aún no hay scores capturados.")
