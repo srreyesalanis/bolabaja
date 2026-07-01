@@ -584,8 +584,15 @@ elif _screen == "scores":
                 net2 = g2_val - sg2
                 bola_baja = min(net1, net2)
                 ganador_hoyo = j1["player_name"] if net1 <= net2 else j2["player_name"]
-                st.metric("Bola baja neta", bola_baja, delta=f"{bola_baja - hole_info['par']} vs par")
-                st.caption(f"Bola baja: {ganador_hoyo}")
+                vs_par = bola_baja - hole_info["par"]
+                vs_par_str = f"+{vs_par}" if vs_par > 0 else str(vs_par)
+                c_score, c_par, c_name = st.columns([1, 1, 2])
+                with c_score:
+                    st.metric("Bola baja", bola_baja)
+                with c_par:
+                    st.metric("Vs par", vs_par_str)
+                with c_name:
+                    st.metric("Aporta", ganador_hoyo)
 
                 scores_to_save.append((pair_name, pid1, gid1, g1_val, net1))
                 scores_to_save.append((pair_name, pid2, gid2, g2_val, net2))
