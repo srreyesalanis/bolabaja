@@ -1,4 +1,4 @@
-﻿import streamlit as st
+import streamlit as st
 import pandas as pd
 from supabase import create_client, Client
 from datetime import date
@@ -143,6 +143,35 @@ def go_home():
     st.session_state.parejas = {}
     st.session_state.strokes_map = {}
     st.session_state.hole_num = 1
+    st.query_params.clear()
+
+# ==============================================================================
+# AUTO-RESTORE desde query_params (persiste al cerrar/reabrir en movil)
+# Si la URL tiene ?g=CODIGO&h=HOYO, restauramos el grupo automaticamente
+# ==============================================================================
+_qp_group = st.query_params.get("g")
+_qp_hole = st.query_params.get("h")
+if _qp_group and st.session_state.screen == "home" and not st.session_state.group:
+    _g = get_group_by_code(_qp_group)
+    if _g:
+        _t_res = supabase.table("tournaments").select("*").eq("id", _g["tournament_id"]).execute()
+        _t = _t_res.data[0]
+        _tee_res = supabase.table("tees").select("*").eq("id", _t["tee_id"]).execute()
+        _holes = get_holes()
+        _rows = get_group_players(_g["id"])
+        _parejas = agrupar_parejas(_rows)
+        st.session_state.tournament = {**_t, "tee": _tee_res.data[0]}
+        st.session_state.group = _g
+        st.session_state.parejas = _parejas
+        st.session_state.strokes_map = build_strokes_map(_parejas, _holes)
+        st.session_state.role = "leader"
+        st.session_state.screen = "scores"
+        if _qp_hole:
+            try:
+                st.session_state.hole_num = int(_qp_hole)
+            except Exception:
+                pass
+        st.rerun()
 
 # ==============================================================================
 # ROUTER - una sola pantalla a la vez
@@ -459,6 +488,10 @@ elif _screen == "scores":
     strokes_map = st.session_state.strokes_map
     holes = get_holes()
 
+    # Persistir en URL para sobrevivir recargas/cierre de celular
+    st.query_params["g"] = g["access_code"]
+    st.query_params["h"] = str(st.session_state.hole_num)
+
     st.title(f"{t['name']} - {g['name']}")
     st.caption(f"Tee: {tee['color']} | Codigo grupo: {g['access_code']}")
 
@@ -491,7 +524,7 @@ elif _screen == "scores":
         index=list(hole_options.keys()).index(current_label), key="hole_selector")
     hole_num = hole_options[sel_label]
     st.session_state.hole_num = hole_num
-
+    st.query_params["h"] = str(hole_num)
     hole_info = next(h for h in holes if h["hole_number"] == hole_num)
     st.markdown(f"**Hoyo {hole_num} - Par {hole_info['par']} | HCP: {hole_info['handicap']}**")
 
@@ -748,6 +781,7 @@ elif _screen == "leaderboard":
         st.rerun()
 
     st.stop()
+
 
 
 
