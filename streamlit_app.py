@@ -720,63 +720,6 @@ elif _screen == "scores":
         st.query_params["g"] = g["access_code"]
         st.rerun()
 
-    st.markdown("---")
-    st.subheader("Detalle hoyo por hoyo")
-
-    # Construir lista de jugadores en orden: grupo > pareja > jugador
-    lb_jugadores = []
-    seen_players = set()
-    for grp in groups:
-        rows = get_group_players(grp["id"])
-        parejas_grp = agrupar_parejas(rows)
-        for pair_name, jugs in parejas_grp.items():
-            for j in jugs:
-                pid = j.get("player_id")
-                gid = j.get("guest_id")
-                key = (grp["id"], pair_name, pid, gid)
-                if key not in seen_players:
-                    seen_players.add(key)
-                    lb_jugadores.append({
-                        "nombre":   j["player_name"],
-                        "pair":     pair_name,
-                        "group_id": grp["id"],
-                        "pid":      pid,
-                        "gid":      gid,
-                    })
-
-    # Mapa de scores brutos: (group_id, pair_name, hole_number, pid, gid) -> strokes
-    lb_scores_map = {}
-    for s in all_scores:
-        k = (s["group_id"], s["pair_name"], s["hole_number"], s.get("player_id"), s.get("guest_id"))
-        lb_scores_map[k] = s["strokes"]
-
-    if lb_scores_map:
-        holes_par_lb = {h["hole_number"]: h["par"] for h in holes}
-        lb_rows = []
-        for hn in range(1, 19):
-            par = holes_par_lb.get(hn, 4)
-            row = {"Hoyo": f"H{hn} (Par {par})"}
-            tiene_algo = False
-            for j in lb_jugadores:
-                val = lb_scores_map.get((j["group_id"], j["pair"], hn, j["pid"], j["gid"]))
-                if val is not None:
-                    diff = val - par
-                    diff_str = f"+{diff}" if diff > 0 else str(diff)
-                    row[j["nombre"]] = f"{val} ({diff_str})"
-                    tiene_algo = True
-                else:
-                    row[j["nombre"]] = "-"
-            if tiene_algo:
-                lb_rows.append(row)
-
-        if lb_rows:
-            cols_lb = ["Hoyo"] + [j["nombre"] for j in lb_jugadores]
-            st.dataframe(pd.DataFrame(lb_rows)[cols_lb], use_container_width=True, hide_index=True)
-        else:
-            st.caption("Aún no hay scores capturados.")
-    else:
-        st.caption("Aún no hay scores capturados.")
-
     if st.button("Salir", use_container_width=True):
         go_home()
         st.rerun()
