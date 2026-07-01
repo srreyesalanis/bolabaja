@@ -717,6 +717,7 @@ elif _screen == "scores":
     st.markdown("---")
     if st.button("Ver Leaderboard", use_container_width=True):
         st.session_state.screen = "leaderboard"
+        st.query_params["g"] = g["access_code"]
         st.rerun()
     if st.button("Salir", use_container_width=True):
         go_home()
@@ -736,13 +737,19 @@ elif _screen == "leaderboard":
     st.title(f"Leaderboard - {t['name']}")
     st.caption(f"Tee: {tee['color']} | Rating: {tee['rating']} | Slope: {tee['slope']}")
 
-    col_back, col_refresh = st.columns(2)
-    with col_back:
-        if st.button("Salir"):
-            go_home()
+    # Si venimos de un grupo, ofrecer volver a el
+    _lb_group_code = st.query_params.get("g")
+    if _lb_group_code:
+        if st.button("Volver al grupo", use_container_width=True):
+            st.session_state.screen = "scores"
             st.rerun()
+    col_refresh, col_salir = st.columns(2)
     with col_refresh:
-        if st.button("Actualizar", key="refresh_leaderboard"):
+        if st.button("Actualizar", key="refresh_leaderboard", use_container_width=True):
+            st.rerun()
+    with col_salir:
+        if st.button("Salir", use_container_width=True):
+            go_home()
             st.rerun()
 
     st.markdown("---")
