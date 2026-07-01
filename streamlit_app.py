@@ -734,22 +734,18 @@ elif _screen == "leaderboard":
 
     EMOJI_GOLD = "\U0001F947"
     EMOJI_GOLF = "\U0001F3CC\uFE0F"
-    st.title(f"Leaderboard - {t['name']}")
-    st.caption(f"Tee: {tee['color']} | Rating: {tee['rating']} | Slope: {tee['slope']}")
-
+    lb_titulo = f"Leaderboard - {t['name']}"
+    lb_sub    = f"Tee: {tee['color']} | Rating: {tee['rating']} | Slope: {tee['slope']}"
+    st.markdown(
+        f'<p style="font-size:1.2em;font-weight:700;margin:0 0 2px 0;">{lb_titulo}</p>'
+        f'<p style="font-size:0.8em;color:#888;margin:0 0 8px 0;">{lb_sub}</p>',
+        unsafe_allow_html=True
+    )
     # Si venimos de un grupo, ofrecer volver a el
     _lb_group_code = st.query_params.get("g")
     if _lb_group_code:
         if st.button("Volver al grupo", use_container_width=True):
             st.session_state.screen = "scores"
-            st.rerun()
-    col_refresh, col_salir = st.columns(2)
-    with col_refresh:
-        if st.button("Actualizar", key="refresh_leaderboard", use_container_width=True):
-            st.rerun()
-    with col_salir:
-        if st.button("Salir", use_container_width=True):
-            go_home()
             st.rerun()
 
     st.markdown("---")
@@ -882,7 +878,8 @@ elif _screen == "leaderboard":
             use_container_width=True, hide_index=True
         )
 
-    if st.button("Actualizar", key="refresh_scores"):
+    if st.button("Salir", use_container_width=True):
+        go_home()
         st.rerun()
 
     st.stop()
