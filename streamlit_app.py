@@ -495,13 +495,13 @@ elif _screen == "scores":
     st.title(f"{t['name']} - {g['name']}")
     st.caption(f"Tee: {tee['color']} | Codigo grupo: {g['access_code']}")
 
-    col_back, col_lb = st.columns(2)
+    col_back, col_lb = st.columns([1, 1])
     with col_back:
-        if st.button("Salir"):
+        if st.button("Salir", use_container_width=True):
             go_home()
             st.rerun()
     with col_lb:
-        if st.button("Ver Leaderboard"):
+        if st.button("Ver Leaderboard", use_container_width=True):
             st.session_state.screen = "leaderboard"
             st.rerun()
 
