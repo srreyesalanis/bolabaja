@@ -671,41 +671,48 @@ elif _screen == "scores":
 
     st.markdown("---")
     st.subheader("Detalle hoyo por hoyo")
-    # Construir tabla: filas = parejas, columnas = hoyos 1-18
-    # Valor = bola baja neta del hoyo (min de los dos jugadores)
-    hoyo_detalle = {}  # pair_name -> {hole_num: bola_baja_neta}
-    for pair_name in parejas:
-        hoyo_detalle[pair_name] = {}
-    for (pn, hn), nets in hole_scores.items():
-        if pn in hoyo_detalle and len(nets) >= 2:
-            hoyo_detalle[pn][hn] = min(nets)
+    # Mapa: (pair_name, hole_number, player_id, guest_id) -> strokes brutos
+    scores_map_detail = {}
+    for s in scores_db:
+        key = (s["pair_name"], s["hole_number"], s.get("player_id"), s.get("guest_id"))
+        scores_map_detail[key] = s["strokes"]
 
-    # Hoyos jugados (solo los que tiene alguna pareja)
-    hoyos_jugados = sorted(set(
-        hn for pn in hoyo_detalle for hn in hoyo_detalle[pn]
-    ))
+    # Lista ordenada de todos los jugadores (nombre, pid, gid)
+    jugadores_list = []
+    for pair_name, jugs in parejas.items():
+        for j in jugs:
+            jugadores_list.append({
+                "nombre": j["player_name"],
+                "pair":   pair_name,
+                "pid":    j.get("player_id"),
+                "gid":    j.get("guest_id"),
+            })
 
-    if hoyos_jugados:
+    if scores_map_detail:
         holes_par = {h["hole_number"]: h["par"] for h in holes}
         tabla_rows = []
-        for pair_name in parejas:
-            row = {"Pareja": pair_name}
-            total_neto = 0
-            for hn in hoyos_jugados:
-                val = hoyo_detalle[pair_name].get(hn)
+        for hn in range(1, 19):
+            par = holes_par.get(hn, 4)
+            row = {"Hoyo": f"H{hn} (Par {par})"}
+            tiene_algo = False
+            for j in jugadores_list:
+                val = scores_map_detail.get((j["pair"], hn, j["pid"], j["gid"]))
                 if val is not None:
-                    par = holes_par.get(hn, 4)
                     diff = val - par
                     diff_str = f"+{diff}" if diff > 0 else str(diff)
-                    row[f"H{hn}"] = f"{val} ({diff_str})"
-                    total_neto += val
+                    row[j["nombre"]] = f"{val} ({diff_str})"
+                    tiene_algo = True
                 else:
-                    row[f"H{hn}"] = "-"
-            tabla_rows.append(row)
+                    row[j["nombre"]] = "-"
+            if tiene_algo:
+                tabla_rows.append(row)
 
-        cols_order = ["Pareja"] + [f"H{hn}" for hn in hoyos_jugados]
-        df_detalle = pd.DataFrame(tabla_rows)[cols_order]
-        st.dataframe(df_detalle, use_container_width=True, hide_index=True)
+        if tabla_rows:
+            cols_order = ["Hoyo"] + [j["nombre"] for j in jugadores_list]
+            df_detalle = pd.DataFrame(tabla_rows)[cols_order]
+            st.dataframe(df_detalle, use_container_width=True, hide_index=True)
+        else:
+            st.caption("Aún no hay scores capturados.")
     else:
         st.caption("Aún no hay scores capturados.")
 
