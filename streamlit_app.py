@@ -188,177 +188,175 @@ elif st.session_state._last_screen != _screen:
 if _screen == "home":
     st.markdown('<p style="font-size:1.4em;font-weight:700;margin:0 0 4px 0;">🏌️ Bola Baja por Parejas - Las Cruces</p>', unsafe_allow_html=True)
     st.markdown("---")
-    col_org, col_spec = st.columns(2)
 
-    with col_org:
-        st.subheader("Administrador")
-        if not st.session_state.admin_authed:
-            if st.button("Administrar Torneo", type="primary"):
-                st.session_state.show_admin_login = True
-            if st.session_state.show_admin_login:
-                st.caption("Ingresa tus credenciales")
-                admin_email = st.text_input("Email", key="admin_email")
-                admin_pass = st.text_input("Password", type="password", key="admin_pass")
-                if st.button("Iniciar sesion", key="admin_login_btn"):
-                    try:
-                        from supabase import create_client as _cc
-                        _tmp = _cc(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
-                        auth_res = _tmp.auth.sign_in_with_password({"email": admin_email, "password": admin_pass})
-                        if auth_res.user:
-                            st.session_state.admin_authed = True
-                            st.session_state.show_admin_login = False
-                            st.rerun()
-                        else:
-                            st.error("Credenciales incorrectas.")
-                    except Exception as e:
-                        st.error(f"Error: {e}")
-        else:
-            st.caption("Sesion admin activa")
-            if st.button("Cerrar sesion", key="admin_logout"):
-                st.session_state.admin_authed = False
+    st.subheader("Espectador")
+    with st.container(border=True):
+        st.markdown('<div style="background:rgba(10,95,95,0.16);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Ver Leaderboard</strong></div>', unsafe_allow_html=True)
+        torneos = get_active_tournaments()
+        if torneos:
+            t_opts = {t["name"]: t for t in torneos}
+            sel = st.selectbox("Torneo", list(t_opts.keys()), key="spec_sel")
+            if st.button("Ver Leaderboard", type="primary"):
+                t = t_opts[sel]
+                tee_res = supabase.table("tees").select("*").eq("id", t["tee_id"]).execute()
+                st.session_state.tournament = {**t, "tee": tee_res.data[0]}
+                st.session_state.role = "spectator"
+                st.session_state.screen = "leaderboard"
                 st.rerun()
+        else:
+            st.info("No hay torneos activos.")
 
-            with st.container(border=True):
-                st.markdown('<div style="background:rgba(30,100,70,0.18);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Crear nuevo torneo</strong></div>', unsafe_allow_html=True)
-                tees = supabase.table("tees").select("id, name, color, rating, slope, par").execute().data
-                if not tees:
-                    st.error("No se pudieron cargar los tees.")
-                else:
-                    tee_opts = {f"{t['color']} - Rating {t['rating']} / Slope {t['slope']}": t for t in tees}
-                    fecha = st.date_input("Fecha", value=date.today(), key="admin_fecha")
-                    tee_label = st.selectbox("Tee", list(tee_opts.keys()), key="admin_tee")
-                    if st.button("Crear Torneo", type="primary", key="admin_crear_torneo"):
-                        tee = tee_opts[tee_label]
-                        code = gen_code("LC")
-                        supabase.table("tournaments").insert({
-                            "name": f"Bola Baja - {fecha}",
-                            "date": str(fecha),
-                            "tee_id": tee["id"],
-                            "format": "bola_baja_parejas",
-                            "access_code": code,
-                        }).execute()
-                        st.success("Torneo creado")
-                        st.info(f"Codigo maestro: {code}")
-                        st.session_state["admin_new_tournament_code"] = code
-            with st.container(border=True):
-                st.markdown('<div style="background:rgba(20,70,130,0.18);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Crear Grupo</strong></div>', unsafe_allow_html=True)
-                torneos_lider = get_active_tournaments()
-                if torneos_lider:
-                    lider_opts = {t["name"]: t for t in torneos_lider}
-                    lider_sel = st.selectbox("Selecciona torneo", list(lider_opts.keys()), key="lider_torneo_sel")
-                    if st.button("Crear Grupo", key="admin_enter_leader", type="primary"):
-                        t_found = lider_opts[lider_sel]
-                        tee_res = supabase.table("tees").select("*").eq("id", t_found["tee_id"]).execute()
-                        st.session_state.tournament = {**t_found, "tee": tee_res.data[0]}
-                        st.session_state.role = "leader"
-                        st.session_state.screen = "leader_setup"
+    st.subheader("Lider de Grupo")
+    with st.container(border=True):
+        st.markdown('<div style="background:rgba(65,95,20,0.16);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Ingresar al grupo</strong></div>', unsafe_allow_html=True)
+        st.caption("Ya tienes un codigo de grupo?")
+        group_code = st.text_input("Codigo de grupo", key="group_code_input", placeholder="")
+        if st.button("Ingresar al grupo", type="primary"):
+            g = get_group_by_code(group_code)
+            if g:
+                t_res = supabase.table("tournaments").select("*").eq("id", g["tournament_id"]).execute()
+                t = t_res.data[0]
+                tee_res = supabase.table("tees").select("*").eq("id", t["tee_id"]).execute()
+                holes = get_holes()
+                rows = get_group_players(g["id"])
+                parejas_agrupadas = agrupar_parejas(rows)
+                st.session_state.tournament = {**t, "tee": tee_res.data[0]}
+                st.session_state.group = g
+                st.session_state.parejas = parejas_agrupadas
+                st.session_state.strokes_map = build_strokes_map(parejas_agrupadas, holes)
+                st.session_state.role = "leader"
+                st.session_state.screen = "scores"
+                st.rerun()
+            else:
+                st.error("Codigo de grupo no encontrado.")
+
+    st.markdown("---")
+    st.subheader("Administrador")
+    if not st.session_state.admin_authed:
+        if st.button("Administrar Torneo", type="primary"):
+            st.session_state.show_admin_login = True
+        if st.session_state.show_admin_login:
+            st.caption("Ingresa tus credenciales")
+            admin_email = st.text_input("Email", key="admin_email")
+            admin_pass = st.text_input("Password", type="password", key="admin_pass")
+            if st.button("Iniciar sesion", key="admin_login_btn"):
+                try:
+                    from supabase import create_client as _cc
+                    _tmp = _cc(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+                    auth_res = _tmp.auth.sign_in_with_password({"email": admin_email, "password": admin_pass})
+                    if auth_res.user:
+                        st.session_state.admin_authed = True
+                        st.session_state.show_admin_login = False
                         st.rerun()
-                else:
-                    st.info("No hay torneos activos.")
-
-            with st.container(border=True):
-                st.markdown('<div style="background:rgba(90,35,90,0.16);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Grupos del torneo</strong></div>', unsafe_allow_html=True)
-                torneos_grupos = get_active_tournaments()
-                if torneos_grupos:
-                    grupos_t_opts = {t["name"]: t for t in torneos_grupos}
-                    grupos_t_sel = st.selectbox("Torneo", list(grupos_t_opts.keys()), key="grupos_t_sel")
-                    t_sel = grupos_t_opts[grupos_t_sel]
-                    grupos_lista = supabase.table("groups").select("*").eq("tournament_id", t_sel["id"]).execute().data
-                    if not grupos_lista:
-                        st.info("No hay grupos creados para este torneo.")
                     else:
-                        for g in grupos_lista:
-                            players_g = supabase.table("group_players").select("*").eq("group_id", g["id"]).order("pair_order").execute().data
-                            participantes = ", ".join([p["player_name"] for p in players_g]) if players_g else "Sin jugadores"
-                            with st.expander(f"{g['name']} — Codigo: {g['access_code']}"):
-                                st.caption(f"Participantes: {participantes}")
-                                nuevo_nombre = st.text_input("Nombre del grupo", value=g["name"], key=f"edit_name_{g['id']}")
-                                col_save, col_del = st.columns(2)
-                                with col_save:
-                                    if st.button("Guardar nombre", key=f"save_{g['id']}"):
-                                        supabase.table("groups").update({"name": nuevo_nombre}).eq("id", g["id"]).execute()
-                                        st.success("Nombre actualizado.")
-                                        st.rerun()
-                                with col_del:
-                                    if st.button("Borrar grupo", key=f"del_g_{g['id']}", type="secondary"):
-                                        supabase.table("guests").delete().eq("tournament_id", t_sel["id"]).in_("id",
-                                            [r["guest_id"] for r in supabase.table("group_players").select("guest_id").eq("group_id", g["id"]).execute().data if r.get("guest_id")]
-                                            or ["00000000-0000-0000-0000-000000000000"]
-                                        ).execute()
-                                        supabase.table("tournament_scores").delete().eq("group_id", g["id"]).execute()
-                                        supabase.table("group_players").delete().eq("group_id", g["id"]).execute()
-                                        supabase.table("groups").delete().eq("id", g["id"]).execute()
-                                        st.success(f"Grupo {g['name']} borrado.")
-                                        st.rerun()
-                else:
-                    st.info("No hay torneos activos.")
+                        st.error("Credenciales incorrectas.")
+                except Exception as e:
+                    st.error(f"Error: {e}")
+    else:
+        st.caption("Sesion admin activa")
+        if st.button("Cerrar sesion", key="admin_logout"):
+            st.session_state.admin_authed = False
+            st.rerun()
 
-            with st.container(border=True):
-                st.markdown('<div style="background:rgba(130,65,10,0.16);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Borrar torneo</strong></div>', unsafe_allow_html=True)
-                torneos_admin = get_active_tournaments()
-                if torneos_admin:
-                    del_opts = {f"{t['name']} ({t['access_code']})": t for t in torneos_admin}
-                    del_sel = st.selectbox("Torneo a borrar", list(del_opts.keys()), key="del_sel")
-                    if st.button("Borrar torneo", type="secondary"):
-                        t_del = del_opts[del_sel]
-                        # 1. Borrar guests del torneo (FK a tournaments)
-                        supabase.table("guests").delete().eq("tournament_id", t_del["id"]).execute()
-                        # 2. Borrar scores por tournament_id (directo, cubre todos los casos)
-                        supabase.table("tournament_scores").delete().eq("tournament_id", t_del["id"]).execute()
-                        # 3. Borrar jugadores de cada grupo
-                        grupos = supabase.table("groups").select("id").eq("tournament_id", t_del["id"]).execute().data
-                        for g in grupos:
-                            supabase.table("group_players").delete().eq("group_id", g["id"]).execute()
-                        # 4. Borrar grupos
-                        supabase.table("groups").delete().eq("tournament_id", t_del["id"]).execute()
-                        # 5. Borrar torneo
-                        supabase.table("tournaments").delete().eq("id", t_del["id"]).execute()
-                        st.success(f"Torneo {t_del['name']} borrado.")
-                        st.rerun()
-                else:
-                    st.info("No hay torneos para borrar.")
-
-    with col_spec:
-        st.subheader("Espectador")
         with st.container(border=True):
-            st.markdown('<div style="background:rgba(10,95,95,0.16);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Ver Leaderboard</strong></div>', unsafe_allow_html=True)
-            torneos = get_active_tournaments()
-            if torneos:
-                t_opts = {t["name"]: t for t in torneos}
-                sel = st.selectbox("Torneo", list(t_opts.keys()), key="spec_sel")
-                if st.button("Ver Leaderboard", type="primary"):
-                    t = t_opts[sel]
-                    tee_res = supabase.table("tees").select("*").eq("id", t["tee_id"]).execute()
-                    st.session_state.tournament = {**t, "tee": tee_res.data[0]}
-                    st.session_state.role = "spectator"
-                    st.session_state.screen = "leaderboard"
+            st.markdown('<div style="background:rgba(30,100,70,0.18);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Crear nuevo torneo</strong></div>', unsafe_allow_html=True)
+            tees = supabase.table("tees").select("id, name, color, rating, slope, par").execute().data
+            if not tees:
+                st.error("No se pudieron cargar los tees.")
+            else:
+                tee_opts = {f"{t['color']} - Rating {t['rating']} / Slope {t['slope']}": t for t in tees}
+                fecha = st.date_input("Fecha", value=date.today(), key="admin_fecha")
+                tee_label = st.selectbox("Tee", list(tee_opts.keys()), key="admin_tee")
+                if st.button("Crear Torneo", type="primary", key="admin_crear_torneo"):
+                    tee = tee_opts[tee_label]
+                    code = gen_code("LC")
+                    supabase.table("tournaments").insert({
+                        "name": f"Bola Baja - {fecha}",
+                        "date": str(fecha),
+                        "tee_id": tee["id"],
+                        "format": "bola_baja_parejas",
+                        "access_code": code,
+                    }).execute()
+                    st.success("Torneo creado")
+                    st.info(f"Codigo maestro: {code}")
+                    st.session_state["admin_new_tournament_code"] = code
+        with st.container(border=True):
+            st.markdown('<div style="background:rgba(20,70,130,0.18);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Crear Grupo</strong></div>', unsafe_allow_html=True)
+            torneos_lider = get_active_tournaments()
+            if torneos_lider:
+                lider_opts = {t["name"]: t for t in torneos_lider}
+                lider_sel = st.selectbox("Selecciona torneo", list(lider_opts.keys()), key="lider_torneo_sel")
+                if st.button("Crear Grupo", key="admin_enter_leader", type="primary"):
+                    t_found = lider_opts[lider_sel]
+                    tee_res = supabase.table("tees").select("*").eq("id", t_found["tee_id"]).execute()
+                    st.session_state.tournament = {**t_found, "tee": tee_res.data[0]}
+                    st.session_state.role = "leader"
+                    st.session_state.screen = "leader_setup"
                     st.rerun()
             else:
                 st.info("No hay torneos activos.")
 
-        st.subheader("Lider de Grupo")
         with st.container(border=True):
-            st.markdown('<div style="background:rgba(65,95,20,0.16);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Ingresar al grupo</strong></div>', unsafe_allow_html=True)
-            st.caption("Ya tienes un codigo de grupo?")
-            group_code = st.text_input("Codigo de grupo", key="group_code_input", placeholder="")
-            if st.button("Ingresar al grupo", type="primary"):
-                g = get_group_by_code(group_code)
-                if g:
-                    t_res = supabase.table("tournaments").select("*").eq("id", g["tournament_id"]).execute()
-                    t = t_res.data[0]
-                    tee_res = supabase.table("tees").select("*").eq("id", t["tee_id"]).execute()
-                    holes = get_holes()
-                    rows = get_group_players(g["id"])
-                    parejas_agrupadas = agrupar_parejas(rows)
-                    st.session_state.tournament = {**t, "tee": tee_res.data[0]}
-                    st.session_state.group = g
-                    st.session_state.parejas = parejas_agrupadas
-                    st.session_state.strokes_map = build_strokes_map(parejas_agrupadas, holes)
-                    st.session_state.role = "leader"
-                    st.session_state.screen = "scores"
-                    st.rerun()
+            st.markdown('<div style="background:rgba(90,35,90,0.16);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Grupos del torneo</strong></div>', unsafe_allow_html=True)
+            torneos_grupos = get_active_tournaments()
+            if torneos_grupos:
+                grupos_t_opts = {t["name"]: t for t in torneos_grupos}
+                grupos_t_sel = st.selectbox("Torneo", list(grupos_t_opts.keys()), key="grupos_t_sel")
+                t_sel = grupos_t_opts[grupos_t_sel]
+                grupos_lista = supabase.table("groups").select("*").eq("tournament_id", t_sel["id"]).execute().data
+                if not grupos_lista:
+                    st.info("No hay grupos creados para este torneo.")
                 else:
-                    st.error("Codigo de grupo no encontrado.")
+                    for g in grupos_lista:
+                        players_g = supabase.table("group_players").select("*").eq("group_id", g["id"]).order("pair_order").execute().data
+                        participantes = ", ".join([p["player_name"] for p in players_g]) if players_g else "Sin jugadores"
+                        with st.expander(f"{g['name']} — Codigo: {g['access_code']}"):
+                            st.caption(f"Participantes: {participantes}")
+                            nuevo_nombre = st.text_input("Nombre del grupo", value=g["name"], key=f"edit_name_{g['id']}")
+                            col_save, col_del = st.columns(2)
+                            with col_save:
+                                if st.button("Guardar nombre", key=f"save_{g['id']}"):
+                                    supabase.table("groups").update({"name": nuevo_nombre}).eq("id", g["id"]).execute()
+                                    st.success("Nombre actualizado.")
+                                    st.rerun()
+                            with col_del:
+                                if st.button("Borrar grupo", key=f"del_g_{g['id']}", type="secondary"):
+                                    supabase.table("guests").delete().eq("tournament_id", t_sel["id"]).in_("id",
+                                        [r["guest_id"] for r in supabase.table("group_players").select("guest_id").eq("group_id", g["id"]).execute().data if r.get("guest_id")]
+                                        or ["00000000-0000-0000-0000-000000000000"]
+                                    ).execute()
+                                    supabase.table("tournament_scores").delete().eq("group_id", g["id"]).execute()
+                                    supabase.table("group_players").delete().eq("group_id", g["id"]).execute()
+                                    supabase.table("groups").delete().eq("id", g["id"]).execute()
+                                    st.success(f"Grupo {g['name']} borrado.")
+                                    st.rerun()
+            else:
+                st.info("No hay torneos activos.")
+
+        with st.container(border=True):
+            st.markdown('<div style="background:rgba(130,65,10,0.16);margin:-12px -12px 8px -12px;padding:6px 14px;border-radius:6px 6px 0 0;"><strong>Borrar torneo</strong></div>', unsafe_allow_html=True)
+            torneos_admin = get_active_tournaments()
+            if torneos_admin:
+                del_opts = {f"{t['name']} ({t['access_code']})": t for t in torneos_admin}
+                del_sel = st.selectbox("Torneo a borrar", list(del_opts.keys()), key="del_sel")
+                if st.button("Borrar torneo", type="secondary"):
+                    t_del = del_opts[del_sel]
+                    # 1. Borrar guests del torneo (FK a tournaments)
+                    supabase.table("guests").delete().eq("tournament_id", t_del["id"]).execute()
+                    # 2. Borrar scores por tournament_id (directo, cubre todos los casos)
+                    supabase.table("tournament_scores").delete().eq("tournament_id", t_del["id"]).execute()
+                    # 3. Borrar jugadores de cada grupo
+                    grupos = supabase.table("groups").select("id").eq("tournament_id", t_del["id"]).execute().data
+                    for g in grupos:
+                        supabase.table("group_players").delete().eq("group_id", g["id"]).execute()
+                    # 4. Borrar grupos
+                    supabase.table("groups").delete().eq("tournament_id", t_del["id"]).execute()
+                    # 5. Borrar torneo
+                    supabase.table("tournaments").delete().eq("id", t_del["id"]).execute()
+                    st.success(f"Torneo {t_del['name']} borrado.")
+                    st.rerun()
+            else:
+                st.info("No hay torneos para borrar.")
 
 # ==============================================================================
 # PANTALLA LEADER SETUP
